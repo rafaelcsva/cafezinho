@@ -1,0 +1,27 @@
+
+int par[5], impar[5],i,p,x;
+programa{
+x=1;
+p=i=0;
+enquanto (x<10) execute{
+	se (x%2) entao {par[p]=x;p=p+1;} senao{impar[i]=x;i=i+1;}
+	x=x+1;
+} 
+x=0;
+escreva "Vetor de pares: ";
+novalinha;
+enquanto(x<5) execute{
+        escreva(par[x]);
+        escreva " ";
+}
+ 
+novalinha;
+escreva "Vetor de impares: ";
+novalinha;
+enquanto(x<5) execute{
+	escreva(impar[x]);
+	escreva " ";
+}
+
+}
+

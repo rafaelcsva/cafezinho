@@ -4,7 +4,7 @@
 	#include <string>
 
 	extern int yylex();
-    void yyerror(const char *s) { printf("ERROR: %sn", s); }	
+    void yyerror(const char *s) { printf("ERROR: %s\n", s); }	
 %}
 
 %union {
@@ -14,42 +14,38 @@
 %token <token> ID TIPO INTCONST carconst intconst cadeiaCaracteres
 
 %type <block> Programa Bloco
-%type <stmt> DeclProg DeclVar DeclFuncVar
+%type <stmt> DeclProg DeclFuncVar DeclVar
 
 %start Programa
 
 %%
 
-Programa :		DeclFuncVar DeclProg {}
+Programa :		DeclFuncVar DeclProg {printf("1\n");}
 				;
 
-DeclFuncVar : 	TIPO ID DeclVar';' DeclFuncVar {}
-				| {}
+DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {printf("2\n");}
+				|TIPO ID '[' INTCONST ']' DeclVar ';' DeclFuncVar {printf("3\n");}
+				|TIPO ID DeclFunc DeclFuncVar {printf("4\n");}
+				| {printf("5\n");}
 				;
 
-DeclVar :		',' ID DeclVar {}
-				|',' ID '['INTCONST']' DeclVar';' DeclFuncVar {}
-				|TIPO ID DeclFunc DeclFuncVar {}
-				| {}
+DeclProg :		"programa" Bloco {printf("6\n");}
 				;
 
-DeclProg :		"programa" Bloco {}
+DeclVar :		',' ID DeclVar {printf("7\n");}
+				|',' ID'['INTCONST']' DeclVar {printf("8\n");}
+				| {printf("9\n");}
 				;
 
-DeclVar :		','ID DeclVar {}
-				|','ID '['INTCONST']' DeclVar {}
-				| {}
+DeclFunc :		'('ListaParametros')' Bloco {printf("10\n");}
 				;
 
-DeclFunc :		'('ListaParametros')' Bloco {}
-				;
-
-ListaParametros :	{}
-					|ListaParametrosCont {}
+ListaParametros :	{printf("11\n");}
+					|ListaParametrosCont {printf("12\n");}
 					;
 
-ListaParametrosCont :	TIPO ID {}
-						|TIPO ID '['']' {}
+ListaParametrosCont :	TIPO ID {printf("13\n");}
+						|TIPO ID '['']' {printf("14\n");}
 						|TIPO ID',' ListaParametrosCont {}
 						|TIPO ID'['']'',' ListaParametrosCont {}
 						;
@@ -60,7 +56,7 @@ Bloco :			'{'ListaDeclVar ListaComando'}' {}
 
 ListaDeclVar :	{}
 				|TIPO ID DeclVar';'ListaDeclVar {}
-				|TIPO ID '['INTCONST']' DeclVar';' ListaDeclVar {}
+				|TIPO ID'['INTCONST']' DeclVar';' ListaDeclVar {}
 				;
 
 ListaComando :	Comando {}
@@ -69,14 +65,14 @@ ListaComando :	Comando {}
 
 Comando :		';' {}
 				|Expr ';' {}
-				|"retorne" Expr ';' {}
-				|"leia" LValueExpr ';' {}
-				|"escreva" Expr ';' {}
-				|"escreva" cadeiaCaracteres ';' {}
+				|"retorne" Expr';' {}
+				|"leia" LValueExpr';' {}
+				|"escreva" Expr';' {}
+				|"escreva" cadeiaCaracteres';' {}
 				|"\n" {}
-				|"se" '(' Expr ')' "entao" Comando {}
-				|"se" '(' Expr ')' "entao" Comando "senao" Comando {}
-				|"enquanto" '(' Expr ')' "execute" Comando {}
+				|"se" '('Expr')' "entao" Comando {}
+				|"se" '('Expr')' "entao" Comando "senao" Comando {}
+				|"enquanto" '('Expr')' "execute" Comando {}
 				|Bloco {}
 				;
 
@@ -127,17 +123,17 @@ UnExpr :		'-'PrimExpr {}
 				|PrimExpr {}
 				;
 
-LValueExpr :	ID '[' Expr ']' {}
+LValueExpr :	ID'['Expr']' {}
 				|ID {}
 				;
 
-PrimExpr :		ID '(' ListExpr ')' {}
+PrimExpr :		ID '('ListExpr')' {}
 				|ID '(' ')' {}
 				|ID '['Expr']' {}
 				|ID {}
 				|carconst {}
 				|intconst {}
-				|'(' Expr ')' {}
+				|'('Expr')' {}
 				;
 
 ListExpr :		AssignExpr {}

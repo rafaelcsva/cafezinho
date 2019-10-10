@@ -734,7 +734,7 @@ case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
 #line 7 "tokens.l"
-;
+printf("text = %s\n", yytext);
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
@@ -749,7 +749,7 @@ printf("ID"); return ID;
 case 4:
 YY_RULE_SETUP
 #line 10 "tokens.l"
-return INTCONST
+return INTCONST;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
