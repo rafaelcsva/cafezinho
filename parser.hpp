@@ -49,8 +49,23 @@ extern int yydebug;
     TIPO = 259,
     INTCONST = 260,
     carconst = 261,
-    intconst = 262,
-    cadeiaCaracteres = 263
+    cadeiaCaracteres = 262,
+    SE = 263,
+    SENAO = 264,
+    LEIA = 265,
+    ESCREVA = 266,
+    NOVALINHA = 267,
+    ENTAO = 268,
+    OR = 269,
+    EQUAL = 270,
+    DIF = 271,
+    GEQ = 272,
+    LEQ = 273,
+    EXECUTE = 274,
+    ENQUANTO = 275,
+    RETURN = 276,
+    PROGRAMA = 277,
+    STRING = 278
   };
 #endif
 
@@ -59,11 +74,11 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 10 "parser.y" /* yacc.c:1909  */
+#line 12 "parser.y" /* yacc.c:1909  */
 
-	int *a;
+	int *lex;
 
-#line 67 "parser.hpp" /* yacc.c:1909  */
+#line 82 "parser.hpp" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

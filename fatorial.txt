@@ -1,4 +1,3 @@
-
 int fatorial(int n){
 	se (n==0)
 	entao
