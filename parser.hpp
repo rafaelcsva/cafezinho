@@ -68,17 +68,39 @@ extern int yydebug;
     STRING = 278
   };
 #endif
+/* Tokens.  */
+#define ID 258
+#define TIPO 259
+#define INTCONST 260
+#define carconst 261
+#define cadeiaCaracteres 262
+#define SE 263
+#define SENAO 264
+#define LEIA 265
+#define ESCREVA 266
+#define NOVALINHA 267
+#define ENTAO 268
+#define OR 269
+#define EQUAL 270
+#define DIF 271
+#define GEQ 272
+#define LEQ 273
+#define EXECUTE 274
+#define ENQUANTO 275
+#define RETURN 276
+#define PROGRAMA 277
+#define STRING 278
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 
 union YYSTYPE
 {
-#line 12 "parser.y" /* yacc.c:1909  */
+#line 11 "parser.y" /* yacc.c:1909  */
 
 	int *lex;
 
-#line 82 "parser.hpp" /* yacc.c:1909  */
+#line 104 "parser.hpp" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
