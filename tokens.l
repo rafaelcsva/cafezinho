@@ -49,13 +49,14 @@ int tmp = 0;
 "execute"				return EXECUTE;
 ";"						return *yytext;
 "programa"				return PROGRAMA;
+","						return *yytext;
 
 "int"|"car"				return TIPO;
 
 [a-zA-Z_][a-zA-Z0-9_]* 	return ID;
 						
 
-[0-9]*					return INTCONST;
+[0-9]+					return INTCONST;
 
 \" 				{ BEGIN CADEIA;}
 <CADEIA>\"		{ BEGIN INITIAL; return STRING; }

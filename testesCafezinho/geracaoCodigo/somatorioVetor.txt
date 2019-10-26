@@ -1,0 +1,22 @@
+int vet[10];
+int somaVet(int vet[], int n){
+	i=0;
+	soma=0;
+	enquanto (i<10) execute {
+		soma= soma+vet[i];
+		i=i+1;	
+	}
+	retorne (soma);
+}
+
+programa{
+	int i;
+	int soma;
+	i=0;
+	enquanto (i<10) execute{
+		leia vet[i];
+		i=i+1;
+	}
+	soma=somaVet(vet,10);
+	escreva soma;
+}
