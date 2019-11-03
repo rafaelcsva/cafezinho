@@ -515,14 +515,15 @@ int yy_flex_debug = 0;
 char *yytext;
 #line 1 "tokens.l"
 #line 2 "tokens.l"
+#include "ast/ast.h"
 #include "parser.hpp"
 
 void yyerror(const char *);
 int tmp = 0;
 
-#line 524 "tokens.cpp"
+#line 525 "tokens.cpp"
 
-#line 526 "tokens.cpp"
+#line 527 "tokens.cpp"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -741,9 +742,9 @@ YY_DECL
 		}
 
 	{
-#line 10 "tokens.l"
+#line 11 "tokens.l"
 
-#line 747 "tokens.cpp"
+#line 748 "tokens.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -803,7 +804,7 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 11 "tokens.l"
+#line 12 "tokens.l"
 {
 						if(strcmp(yytext, "\n") == 0){
 							yylineno++;
@@ -813,254 +814,254 @@ YY_RULE_SETUP
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 18 "tokens.l"
+#line 19 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 19 "tokens.l"
+#line 20 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 20 "tokens.l"
+#line 21 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 21 "tokens.l"
+#line 22 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 22 "tokens.l"
+#line 23 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 23 "tokens.l"
+#line 24 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 24 "tokens.l"
+#line 25 "tokens.l"
 return GEQ;
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 25 "tokens.l"
+#line 26 "tokens.l"
 return LEQ;
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 26 "tokens.l"
+#line 27 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 27 "tokens.l"
+#line 28 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 28 "tokens.l"
+#line 29 "tokens.l"
 return EQUAL;
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 29 "tokens.l"
+#line 30 "tokens.l"
 return DIF;
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 30 "tokens.l"
+#line 31 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 31 "tokens.l"
+#line 32 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 32 "tokens.l"
+#line 33 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 33 "tokens.l"
+#line 34 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 34 "tokens.l"
+#line 35 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 35 "tokens.l"
+#line 36 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 36 "tokens.l"
+#line 37 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 37 "tokens.l"
+#line 38 "tokens.l"
 return OR;
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 38 "tokens.l"
+#line 39 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 39 "tokens.l"
+#line 40 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 40 "tokens.l"
+#line 41 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 41 "tokens.l"
+#line 42 "tokens.l"
 return ENTAO;
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 42 "tokens.l"
+#line 43 "tokens.l"
 return SE;
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 43 "tokens.l"
+#line 44 "tokens.l"
 return RETURN;
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 44 "tokens.l"
+#line 45 "tokens.l"
 return SENAO;
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 45 "tokens.l"
+#line 46 "tokens.l"
 return LEIA;
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 46 "tokens.l"
+#line 47 "tokens.l"
 return ESCREVA;
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 47 "tokens.l"
+#line 48 "tokens.l"
 return NOVALINHA;
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 48 "tokens.l"
+#line 49 "tokens.l"
 return ENQUANTO;
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 49 "tokens.l"
+#line 50 "tokens.l"
 return EXECUTE;
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 50 "tokens.l"
+#line 51 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 51 "tokens.l"
+#line 52 "tokens.l"
 return PROGRAMA;
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 52 "tokens.l"
+#line 53 "tokens.l"
 return *yytext;
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 54 "tokens.l"
+#line 55 "tokens.l"
 return TIPO;
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 56 "tokens.l"
+#line 57 "tokens.l"
 return ID;
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 59 "tokens.l"
+#line 60 "tokens.l"
 return INTCONST;
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 61 "tokens.l"
+#line 62 "tokens.l"
 { BEGIN CADEIA;}
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 62 "tokens.l"
+#line 63 "tokens.l"
 { BEGIN INITIAL; return STRING; }
 	YY_BREAK
 case 42:
 /* rule 42 can match eol */
 YY_RULE_SETUP
-#line 63 "tokens.l"
+#line 64 "tokens.l"
 { yylineno++; yyerror("CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA"); }
 	YY_BREAK
 case YY_STATE_EOF(CADEIA):
-#line 64 "tokens.l"
+#line 65 "tokens.l"
 { yyerror("STRING NAO TERMINA."); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 65 "tokens.l"
+#line 66 "tokens.l"
 { }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 68 "tokens.l"
+#line 69 "tokens.l"
 { BEGIN COMMENT; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 70 "tokens.l"
+#line 71 "tokens.l"
 { 	yylineno += tmp;
 					tmp = 0;
 					BEGIN INITIAL; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 74 "tokens.l"
+#line 75 "tokens.l"
 {;}
 	YY_BREAK
 case 47:
 /* rule 47 can match eol */
 YY_RULE_SETUP
-#line 75 "tokens.l"
+#line 76 "tokens.l"
 { tmp++; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 76 "tokens.l"
+#line 77 "tokens.l"
 {;}
 	YY_BREAK
 case YY_STATE_EOF(COMMENT):
-#line 77 "tokens.l"
+#line 78 "tokens.l"
 { yyerror("COMENTARIO NAO TERMINA."); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 79 "tokens.l"
+#line 80 "tokens.l"
 {
 
 							yyerror("CARACTERE INVÁLIDO.");
@@ -1068,10 +1069,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 83 "tokens.l"
+#line 84 "tokens.l"
 ECHO;
 	YY_BREAK
-#line 1075 "tokens.cpp"
+#line 1076 "tokens.cpp"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2076,7 +2077,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 83 "tokens.l"
+#line 84 "tokens.l"
 
 
 int yywrap(){ 

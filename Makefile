@@ -1,9 +1,9 @@
 default: all
 
 all:
-	bison -d -o parser.cpp parser.y
+	bison -o parser.cpp -y -d parser.y
 	flex -o tokens.cpp tokens.l
-	g++ -o parser parser.cpp tokens.cpp -lfl
+	g++ parser.cpp tokens.cpp -O2 -o parser
 	
 clean:
 	rm *.cpp *.hpp parser

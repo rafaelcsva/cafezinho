@@ -1,4 +1,5 @@
 %{
+#include "ast/ast.h"
 #include "parser.hpp"
 
 void yyerror(const char *);

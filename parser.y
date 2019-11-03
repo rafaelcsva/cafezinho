@@ -1,26 +1,35 @@
 %{
+
 	#include <cstdio>
 	#include <iostream>
 	#include <string>
+	#include "ast/ast.h"
 
 	extern int yylineno;
 	extern int yylex();
 	void yyerror(const char* s);
+
+	ASTNode* root;
 %}
 
 %union {
 	int *lex;
+	ASTNode* node;
 }
 
 %token <token> ID TIPO INTCONST carconst cadeiaCaracteres SE SENAO LEIA ESCREVA NOVALINHA ENTAO OR EQUAL DIF GEQ LEQ EXECUTE ENQUANTO RETURN PROGRAMA STRING
 
-%type <lex> DeclProg DeclFuncVar DeclVar Programa Bloco
+%type <node> DeclProg DeclFuncVar DeclVar Programa Bloco
 
 %start Programa
 
 %%
 
-Programa :		DeclFuncVar DeclProg {}
+Programa :		DeclFuncVar DeclProg 
+				{
+					root = $1;
+					root->add($2);
+				}
 				;
 
 DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {}
