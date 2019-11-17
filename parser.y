@@ -13,13 +13,17 @@
 %}
 
 %union {
-	int *lex;
 	ASTNode* node;
+	std::string *tval;
+	DeclId* decId;
+	DeclVar* decVar;
 }
 
-%token <token> ID TIPO INTCONST carconst cadeiaCaracteres SE SENAO LEIA ESCREVA NOVALINHA ENTAO OR EQUAL DIF GEQ LEQ EXECUTE ENQUANTO RETURN PROGRAMA STRING
+%token <tval> ID TIPO INTCONST carconst cadeiaCaracteres SE SENAO LEIA ESCREVA NOVALINHA ENTAO OR EQUAL DIF GEQ LEQ EXECUTE ENQUANTO RETURN PROGRAMA STRING
 
-%type <node> DeclProg DeclFuncVar DeclVar Programa Bloco
+%type <node> DeclProg Programa Bloco
+%type <decId> DeclVar
+%type <decVar> DeclFuncVar
 
 %start Programa
 
@@ -32,17 +36,47 @@ Programa :		DeclFuncVar DeclProg
 				}
 				;
 
-DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {}
-				| TIPO ID '['INTCONST']' DeclVar ';' DeclFuncVar {}
-				| TIPO ID DeclFunc DeclFuncVar {}
-				| %empty {}
+DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
+					$$->setDataType($2);
+					$3->add_back(new DeclId($2));
+					$$->add($3);
+
+					if($5 != NULL){
+						$$->add($5);
+					}
+
+					$$->set_location(yylineno);
+				}
+				| TIPO ID '['INTCONST']' DeclVar ';' DeclFuncVar {
+					$$->setDataType($1);
+					$6->add_back(new DeclId($2, $4));
+					$$->add($6);
+
+					if($8 != NULL){
+						$$->add($8);
+					}
+
+					$$->set_location(yylineno);
+				}
+				| TIPO ID DeclFunc DeclFuncVar {
+					
+				}
+				| %empty { $$ = NULL;}
 				;
 
 DeclProg :		PROGRAMA Bloco {}
 				;
 
-DeclVar :		',' ID DeclVar {}
-				| ',' ID'['INTCONST']' DeclVar {}
+DeclVar :		',' ID DeclVar {
+					$$ = $3;
+					$$->add_back(new DeclId($2));
+					$$->set_location(yylineno);
+				}
+				| ',' ID'['INTCONST']' DeclVar {
+					$$ = $6;
+					$$->add_back(new DeclId($2, $4));
+					$$->set_location(yylineno);
+				}
 				| %empty {}
 				;
 

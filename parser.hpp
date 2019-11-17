@@ -98,10 +98,12 @@ union YYSTYPE
 {
 #line 15 "parser.y" /* yacc.c:1909  */
 
-	int *lex;
 	ASTNode* node;
+	std::string *tval;
+	DeclId* decId;
+	DeclVar* decVar;
 
-#line 105 "parser.hpp" /* yacc.c:1909  */
+#line 107 "parser.hpp" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
