@@ -54,22 +54,29 @@ class ASTNode {
 		}
 };
 
+class Helper{
+public:
+	static DataType get_type_o(std::string *dt, bool is_array = false){
+		if(*dt == "char"){
+			if(!is_array)
+				return CHAR_T;
+			else
+				return CHAR_ARRAY_T;
+		}else if(*dt == "int"){
+			if(!is_array)
+				return INT_T;
+			else
+				return INT_ARRAY_T;
+		}
+	}
+};
+
 class DeclVar : public ASTNode {
 	protected:
 		DataType var_type;
 	public:
 		void setDataType(std::string* dt, bool is_array = false){
-			if(*dt == "char"){
-				if(!is_array)
-					this->var_type = CHAR_T;
-				else
-					this->var_type = CHAR_ARRAY_T;
-			}else if(*dt == "int"){
-				if(!is_array)
-					this->var_type = INT_T;
-				else
-					this->var_type = INT_ARRAY_T;
-			}
+			this->var_type = Helper::get_type_o(dt, is_array);
 		}
 
 		void setDataType(DataType dt) { var_type = dt; }
@@ -93,6 +100,11 @@ class DeclId : public ASTNode {
 			this->var_id = identifier;
 		}
 
+		DeclId(std::string *identifier, int sz){
+			this->var_id = identifier;
+			this->var_size = sz;
+		}
+
 		DeclId(std::string *identifier, std::string *sz){
 			this->var_id = identifier;
 			this->var_size = std::stoi(*sz);
@@ -102,7 +114,19 @@ class DeclId : public ASTNode {
 			this->var_id = name;
 		}
 
-		std::string* getVarName() { return this->var_id;}
-		int getVarSize() { return this->var_size;}
+		std::string* getVarName() { return this->var_id; }
+		int getVarSize() { return this->var_size; }
+};
+
+class FuncDecl : public ASTNode {
+	protected:
+		DataType func_type;
+		std::string* func_name;
+	public:
+		FuncDecl(std::string *tp, std::string *nm){
+			this->func_name = nm;
+			this->func_type = Helper::get_type_o(tp);
+		}
+
 
 };

@@ -21,9 +21,8 @@
 
 %token <tval> ID TIPO INTCONST carconst cadeiaCaracteres SE SENAO LEIA ESCREVA NOVALINHA ENTAO OR EQUAL DIF GEQ LEQ EXECUTE ENQUANTO RETURN PROGRAMA STRING
 
-%type <node> DeclProg Programa Bloco
+%type <node> DeclProg Programa DeclFuncVar DeclFunc ListaParametros ListaParametrosCont Bloco ListaDeclVar ListaComando
 %type <decId> DeclVar
-%type <decVar> DeclFuncVar
 
 %start Programa
 
@@ -37,7 +36,10 @@ Programa :		DeclFuncVar DeclProg
 				;
 
 DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
-					$$->setDataType($2);
+					$$ = new DeclVar();
+					static_cast< DeclVar* >($$)->setDataType($2);
+
+					static_cast< DeclVar* >($$)->setDataType($2);
 					$3->add_back(new DeclId($2));
 					$$->add($3);
 
@@ -48,7 +50,8 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 					$$->set_location(yylineno);
 				}
 				| TIPO ID '['INTCONST']' DeclVar ';' DeclFuncVar {
-					$$->setDataType($1);
+					$$ = new DeclVar();
+					static_cast< DeclVar* >($$)->setDataType($1);
 					$6->add_back(new DeclId($2, $4));
 					$$->add($6);
 
@@ -59,7 +62,9 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 					$$->set_location(yylineno);
 				}
 				| TIPO ID DeclFunc DeclFuncVar {
-					
+					$$ = new FuncDecl($1, $2);
+					if($4 != NULL)
+						$$->add($4);
 				}
 				| %empty { $$ = NULL;}
 				;
@@ -77,29 +82,75 @@ DeclVar :		',' ID DeclVar {
 					$$->add_back(new DeclId($2, $4));
 					$$->set_location(yylineno);
 				}
-				| %empty {}
+				| %empty { $$ = NULL; }
 				;
 
-DeclFunc :		'('ListaParametros')' Bloco {}
+DeclFunc :		'('ListaParametros')' Bloco {
+					$$ = $2;
+					$$->add($4);
+				}
 				;
 
-ListaParametros :	%empty {printf("11\n");}
-					| ListaParametrosCont {}
+ListaParametros :	%empty { $$ = NULL; }
+					| ListaParametrosCont {
+						$$ = $1;
+					}
 					;
 
-ListaParametrosCont :	TIPO ID {}
-						| TIPO ID '['']' {}
-						| TIPO ID',' ListaParametrosCont {}
-						| TIPO ID'['']'',' ListaParametrosCont {}
+ListaParametrosCont :	TIPO ID {
+							$$ = new DeclVar();
+							static_cast< DeclVar* >($$)->setDataType($1);
+							static_cast< DeclVar* >($$)->add(new DeclId($2));
+						}
+						| TIPO ID '['']' {
+							$$ = new DeclVar();
+							static_cast< DeclVar* >($$)->setDataType($1);
+							static_cast< DeclVar* >($$)->add(new DeclId($2, 0));
+						}
+						| TIPO ID',' ListaParametrosCont {
+							$$ = new DeclVar();
+							static_cast< DeclVar* >($$)->setDataType($1);
+							static_cast< DeclVar* >($$)->add(new DeclId($2));
+
+							$$->add($4);
+						}
+						| TIPO ID'['']'',' ListaParametrosCont {
+							$$ = new DeclVar();
+							static_cast< DeclVar* >($$)->setDataType($1);
+							static_cast< DeclVar* >($$)->add(new DeclId($2, 0));
+
+							$$->add($6);
+						}
 						;
 
-Bloco :			'{'ListaDeclVar ListaComando'}' {}
-				| '{'ListaDeclVar'}' {}
+Bloco :			'{'ListaDeclVar ListaComando'}' {
+					$$ = $2;
+					$$->add($3);
+				}
+				| '{'ListaDeclVar'}' {
+					$$ = $2;
+				}
 				;
 
-ListaDeclVar :	%empty {}
-				| TIPO ID DeclVar';'ListaDeclVar {}
-				| TIPO ID'['INTCONST']' DeclVar';' ListaDeclVar {}
+ListaDeclVar :	%empty { $$ = NULL; }
+				| TIPO ID DeclVar';'ListaDeclVar { 
+					$$ = new DeclVar();
+					static_cast< DeclVar* >($$)->setDataType($1);
+					static_cast< DeclVar* >($$)->add(new DeclId($2));
+
+					$$->add($3);
+					$$->add($5);
+				}
+				| TIPO ID'['INTCONST']' DeclVar';' ListaDeclVar {
+					$$ = new DeclVar();
+					static_cast< DeclVar* >($$)->setDataType($1);
+
+					$$->add(new DeclId($2, $4));
+					$$->add($6);
+
+					if($8 != NULL)
+						$$->add($8);
+				}
 				;
 
 ListaComando :	Comando {}
