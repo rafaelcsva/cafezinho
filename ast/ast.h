@@ -22,6 +22,30 @@ enum DataType
 	INT_ARRAY_T = 0x3
 };
 
+enum Op
+{
+		MOD,
+        PLUS,
+        MINUS,
+        TIMES,
+        DIVIDES,
+        GREATER,
+        LESS,
+		EQUALS,
+        NOT_EQUAL,
+		LESS_EQUAL,
+		GREATER_EQUAL,
+        LOGICAL_OR,
+        LOGICAL_AND,
+		NOT
+};
+
+enum UnOp{
+	INV,
+	NEG,
+	NOTHING
+};
+
 class ASTNode {
 	protected:
 		std::vector< ASTNode* > child;
@@ -128,5 +152,170 @@ class FuncDecl : public ASTNode {
 			this->func_type = Helper::get_type_o(tp);
 		}
 
+
+};
+
+class Se : public ASTNode {
+	public:
+		Se(ASTNode* expr, ASTNode* stmt, ASTNode* elsestmt = NULL){
+			this->add(expr);
+			this->add(stmt);
+
+			if(elsestmt != NULL){
+				this->add(elsestmt);
+			}
+		}
+};
+
+class Enquanto : public ASTNode {
+	public:
+		Enquanto(ASTNode* expr, ASTNode* stmt){
+			this->add(expr);
+			this->add(stmt);
+		}
+};
+
+class Expr : public ASTNode {
+	protected:
+		DataType exp_tp;
+	public:
+		Expr(DataType dt){
+			this->exp_tp = dt;
+		}
+
+		Expr(){
+			this->exp_tp = INT_T;
+		}
+};
+
+class AssignExpr : public Expr {
+	public:
+		AssignExpr(ASTNode* lhs, ASTNode* rhs) : Expr(INT_T){
+			this->add(lhs);
+			this->add(rhs);
+		}
+};
+
+class TernExpr : public Expr {
+	public:
+		TernExpr(ASTNode* expr, ASTNode* at1, ASTNode* at2) : Expr(INT_T){
+			this->add(expr);
+			this->add(at1);
+			this->add(at2);	
+		}
+};
+
+class BinaryExpr : public Expr {
+	protected:
+		Op op;
+	public:
+		BinaryExpr(Op op, ASTNode* lhs, ASTNode* rhs) : Expr(INT_T){
+			this->op = op;
+			this->add(lhs);
+			this->add(rhs);
+		}
+};
+
+class UnaryExpr : public Expr {
+	protected:
+		UnOp op;
+	public:
+		UnaryExpr(ASTNode* expr, UnOp opt = NOTHING) : Expr(INT_T){
+			this->op = opt;
+		
+			this->add(expr);
+		}
+};	
+
+class ConstExpr : public Expr {
+	protected:
+		std::string* value;
+	public:
+		ConstExpr(DataType dt, std::string* val) : Expr(dt){
+			this->value = val;
+		}
+
+		int getIntVal(){
+			return stoi(*value);
+		}
+
+		std::string getStringVal(){
+			return *value;
+		}
+
+		char getCharVal(){
+			if( value->at(0) == '\\' ){
+				switch( value->at(1) ){
+					case '0': return '\0';
+					case 'n': return '\n';
+					case 't': return '\t';
+					case 'a': return '\a';
+					case 'r': return '\r';
+					case 'b': return '\b'; 
+					case 'f': return '\f';
+					case '\\': return '\\';
+				}
+			}
+
+			return value->at(0);
+		}
+};
+
+class FuncCall : public Expr {
+	protected:
+		std::string* func_id;
+	public:
+		FuncCall(std::string* func_nm, ASTNode* args = NULL){
+			this->add(args);
+
+			this->func_id = func_nm;
+		}
+};
+
+class ArgList : public ASTNode {
+	public:
+		std::vector< ASTNode* > get_childs(){
+			return this->child;
+		}
+};
+
+class Identifier : public ASTNode {
+	protected:
+		DataType var_tp;
+		std::string* id;
+	public:
+		Identifier(std::string* id, ASTNode* arr_pos = NULL){
+			this->id = id;
+			this->add(arr_pos);
+		}
+};
+
+class Leia : public ASTNode{
+	protected:
+		Identifier* var_id;
+	public:	
+		Leia(Identifier* identifier) : var_id(identifier) {}
+};
+
+class Escreva : public ASTNode {
+	public:
+		Escreva(){}
+
+		Escreva(ASTNode *expr){
+			this->add(expr);
+		}
+};
+
+class Return : public ASTNode {
+	protected:
+		DataType rtype;
+		Expr* rval;
+	public:
+		Return(ASTNode* expr) : rval(static_cast< Expr* >(expr)) {}
+
+		DataType getReturnType() { return this->rtype; }
+};
+
+class Cmd : public ASTNode{
 
 };

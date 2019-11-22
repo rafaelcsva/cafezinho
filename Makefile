@@ -11,4 +11,4 @@ clean:
 debug:
 	bison -d -o parser.cpp -y parser.y
 	flex -o tokens.cpp tokens.l
-	g++ -o parser parser.cpp tokens.cpp -DDBG_PRINT_TREE
+	g++ -o parser parser.cpp tokens.cpp -DDBG_PRINT_TREE -g

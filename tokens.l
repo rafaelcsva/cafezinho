@@ -4,10 +4,12 @@
 
 void yyerror(const char *);
 int tmp = 0;
+std::string buf;
 
 %}
 
-%x COMMENT CADEIA
+%x COMMENT CADEIA RCHAR ESCP ENDCHAR
+
 %%
 [ \t\n]                 {
 						if(strcmp(yytext, "\n") == 0){
@@ -52,19 +54,26 @@ int tmp = 0;
 "programa"				return PROGRAMA;
 ","						return *yytext;
 
-"int"|"car"				return TIPO;
+"int"|"car"				{yylval.tval = new std::string(yytext); return TIPO;}
 
-[a-zA-Z_][a-zA-Z0-9_]* 	return ID;
-						
+[a-zA-Z_][a-zA-Z0-9_]* 	{yylval.tval = new std::string(yytext); return ID;}
 
-[0-9]+					return INTCONST;
+[0-9]+					{yylval.tval = new std::string(yytext); return INTCONST;}
 
-\" 				{ BEGIN CADEIA;}
-<CADEIA>\"		{ BEGIN INITIAL; return STRING; }
+\" 				{ BEGIN CADEIA; buf = "";}
+<CADEIA>\"		{ BEGIN INITIAL; yylval.tval = new std::string(buf); return STRING; }
 <CADEIA>\n		{ yylineno++; yyerror("CADEIA DE CARACTERES OCUPA MAIS DE UMA LINHA"); }
+<CADEIA>{
+	"\\n"		{ buf += '\n'; }
+	"\\t"		{ buf += '\t'; }
+	"\\a"		{ buf += '\a'; }
+	"\\r"		{ buf += '\r'; }
+	"\\b"		{ buf += '\b'; }
+	"\\f"		{ buf += '\f'; }
+	"\\\""		{ buf += '\\'; }
+}
 <CADEIA><<EOF>> { yyerror("STRING NAO TERMINA."); }
 <CADEIA>.		{ }
-
 
 "/*"			 { BEGIN COMMENT; }
 
@@ -77,10 +86,23 @@ int tmp = 0;
 <COMMENT>[^*\n]	 	{;}
 <COMMENT><<EOF>>	{ yyerror("COMENTARIO NAO TERMINA."); }
 
+'				{ BEGIN RCHAR; }
+<RCHAR>\\		{ BEGIN ESCP; }
+<RCHAR>.		{ buf = ""; buf += *yytext; BEGIN ENDCHAR; }
+<ESCP>{
+	[0ntarbf\\']	{ buf = "\\"; buf += *yytext; BEGIN ENDCHAR; }
+}
+<ESCP>.			{ yyerror( "FALTANDO DELIMITADOR ' EM CONSTANTE TIPO char." ); }
+
+<ENDCHAR>'		{ BEGIN INITIAL; yylval.tval = new std::string(yytext); return LITCHAR; }
+<ENDCHAR>.		{ yyerror( "FALTANDO DELIMITADOR ' EM CONSTANTE TIPO char." ); };
+
 .                       {
 
 							yyerror("CARACTERE INVÁLIDO.");
 						}
+
+
 %%
 
 int yywrap(){ 

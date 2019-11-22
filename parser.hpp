@@ -65,7 +65,8 @@ extern int yydebug;
     ENQUANTO = 275,
     RETURN = 276,
     PROGRAMA = 277,
-    STRING = 278
+    STRING = 278,
+    LITCHAR = 279
   };
 #endif
 /* Tokens.  */
@@ -90,6 +91,7 @@ extern int yydebug;
 #define RETURN 276
 #define PROGRAMA 277
 #define STRING 278
+#define LITCHAR 279
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
@@ -103,7 +105,7 @@ union YYSTYPE
 	DeclId* decId;
 	DeclVar* decVar;
 
-#line 107 "parser.hpp" /* yacc.c:1909  */
+#line 109 "parser.hpp" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
