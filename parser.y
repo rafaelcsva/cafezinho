@@ -30,8 +30,8 @@
 
 Programa :		DeclFuncVar DeclProg 
 				{
-					root = $1;
-					root->add($2);
+					$1->run();
+					$2->run();
 				}
 				;
 
@@ -63,6 +63,9 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 				}
 				| TIPO ID DeclFunc DeclFuncVar {
 					$$ = new FuncDecl($1, $2);
+
+					$$->add($3);
+
 					if($4 != NULL)
 						$$->add($4);
 
@@ -104,13 +107,7 @@ DeclVar :		',' ID DeclVar {
 				;
 
 DeclFunc :		'('ListaParametros')' Bloco {
-					if($2 != NULL){
-						$$ = $2;
-					}else{
-						$$ = new DeclVar();
-					}
-
-					$$->add($4);
+					$$ = new FuncBody($2, $4);
 
 					$$->set_location(yylineno);
 				}
@@ -121,7 +118,7 @@ ListaParametros :	%empty { $$ = NULL; }
 						if($1 != NULL){
 							$$ = $1;
 						}else{
-							$$ = new DeclVar();
+							$$ = new FuncParametro();
 						}
 
 						$$->set_location(yylineno);
@@ -129,32 +126,30 @@ ListaParametros :	%empty { $$ = NULL; }
 					;
 
 ListaParametrosCont :	TIPO ID {
-							$$ = new DeclVar();
-							static_cast< DeclVar* >($$)->setDataType($1);
-							static_cast< DeclVar* >($$)->add(new DeclId($2));
+							$$ = new FuncParametro();
+							static_cast< FuncParametro* >($$)->setDataType($1);
+							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->set_location(yylineno);
 						}
 						| TIPO ID '['']' {
-							$$ = new DeclVar();
-							static_cast< DeclVar* >($$)->setDataType($1);
-							static_cast< DeclVar* >($$)->add(new DeclId($2, 0));
+							$$ = new FuncParametro();
+							static_cast< FuncParametro* >($$)->setDataType($1);
+							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->set_location(yylineno);
 						}
 						| TIPO ID',' ListaParametrosCont {
-							$$ = new DeclVar();
-							static_cast< DeclVar* >($$)->setDataType($1);
-							static_cast< DeclVar* >($$)->add(new DeclId($2));
-
-							$$->add($4);
+							$$ = new FuncParametro();
+							static_cast< FuncParametro* >($$)->setDataType($1);
+							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->set_location(yylineno);
 						}
 						| TIPO ID'['']'',' ListaParametrosCont {
-							$$ = new DeclVar();
-							static_cast< DeclVar* >($$)->setDataType($1);
-							static_cast< DeclVar* >($$)->add(new DeclId($2, 0));
+							$$ = new FuncParametro();
+							static_cast< FuncParametro* >($$)->setDataType($1, true);
+							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->add($6);
 
@@ -163,22 +158,17 @@ ListaParametrosCont :	TIPO ID {
 						;
 
 Bloco :			'{'ListaDeclVar ListaComando'}' {
-					if($2 != NULL){
-						$$ = $2;
-					}else{
-						$$ = new Cmd();
-					}
-
+					$$ = new Bloco();
+					
+					$$->add($2);
 					$$->add($3);
 
 					$$->set_location(yylineno);
 				}
 				| '{'ListaDeclVar'}' {
-					if($2 != NULL){
-						$$ = $2;
-					}else{
-						$$ = new Cmd();
-					}
+					$$ = new Bloco();
+
+					$$->add($2);
 
 					$$->set_location(yylineno);
 				}
@@ -210,13 +200,14 @@ ListaDeclVar :	%empty { $$ = NULL; }
 				;
 
 ListaComando :	Comando {
-					$$ = $1;
+					$$ = new ListaCmd();
+					$$->add($1);
 				}
 				| Comando ListaComando {
 					if($2 != NULL){
 						$$ = $2;
 					}else{
-						$$ = new Cmd();
+						$$ = new ListaCmd();
 					}
 
 					$$->add_back($1);
@@ -267,10 +258,8 @@ Comando :		';' { $$ = NULL; }
 					$$->set_location(yylineno);
 				}
 				| Bloco {
-					if($1 != NULL){
-						$$ = $1;
-						$$->set_location(yylineno);
-					}
+					$$ = $1;
+					$$->set_location(yylineno);
 				}
 				;
 
@@ -462,6 +451,11 @@ ListExpr :		AssignExpr {
 				}
 				;
 %%
+
+void yyerror(const char *s, int err_line ) {
+	fprintf(stderr, "ERRO! Proximo a linha: %d - %s\n", err_line, s );
+	exit(1);
+}
 
 void yyerror(const char *s) {
 	fprintf(stderr, "ERRO! Linha: %d - %s\n", yylineno, s );
