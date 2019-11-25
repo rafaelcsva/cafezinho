@@ -30,8 +30,11 @@
 
 Programa :		DeclFuncVar DeclProg 
 				{
-					$1->run();
-					$2->run();
+					if($1 != NULL)
+						$1->run();
+
+					if($2 != NULL)
+						$2->run();
 				}
 				;
 
@@ -82,22 +85,22 @@ DeclProg :		PROGRAMA Bloco {
 DeclVar :		',' ID DeclVar {
 					if($3 != NULL){
 						$$ = $3;
-					}else{
-						$$ = new ASTNode();
-					}
 
-					$$->add_back(new DeclId($2));
+						$$->add_back(new DeclId($2));
+					}else{
+						$$ = new DeclId($2);
+					}
 
 					$$->set_location(yylineno);
 				}
 				| ',' ID'['INTCONST']' DeclVar {
 					if($6 != NULL){
 						$$ = $6;
-					}else{
-						$$ = new ASTNode();
-					}
 
-					$$->add_back(new DeclId($2, $4));
+						$$->add_back(new DeclId($2, $4));
+					}else{
+						$$ = new DeclId($2, $4);
+					}
 					
 					$$->set_location(yylineno);
 				}
@@ -162,6 +165,7 @@ Bloco :			'{'ListaDeclVar ListaComando'}' {
 					
 					$$->add($2);
 					$$->add($3);
+					printf("aqui!\n");
 
 					$$->set_location(yylineno);
 				}
@@ -176,21 +180,43 @@ Bloco :			'{'ListaDeclVar ListaComando'}' {
 
 ListaDeclVar :	%empty { $$ = NULL; }
 				| TIPO ID DeclVar';'ListaDeclVar { 
-					$$ = new DeclVar();
-					static_cast< DeclVar* >($$)->setDataType($1);
-					static_cast< DeclVar* >($$)->add(new DeclId($2));
+					$$ = new ListaDeclVar();
 
-					$$->add($3);
-					$$->add($5);
+					static_cast< ListaDeclVar* >($$)->set_type($1);
+
+					if($3 == NULL){
+						$3 = new DeclId($2);
+					}else{
+						static_cast< DeclId* >($3)->add_back(new DeclId($2));
+					}
+
+					DeclId *a = (DeclId*) $3;
+
+					for(int i = 0 ; i < (a->get_child()).size() ; i++){
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId * >(a->get_child()[i]));
+					}
+
+					if($5 != NULL)
+						$$->add($5);
 
 					$$->set_location(yylineno);
 				}
 				| TIPO ID'['INTCONST']' DeclVar';' ListaDeclVar {
-					$$ = new DeclVar();
-					static_cast< DeclVar* >($$)->setDataType($1);
+					$$ = new ListaDeclVar();
 
-					$$->add(new DeclId($2, $4));
-					$$->add($6);
+					static_cast< ListaDeclVar* >($$)->set_type($1);
+					
+					if($6 == NULL){
+						$6 = new DeclId($2, $4);
+					}else{
+						static_cast< DeclId* >($6)->add_back(new DeclId($2, $4));
+					}
+
+					DeclId *a = (DeclId*) $6;
+
+					for(int i = 0 ; i < (a->get_child()).size() ; i++){
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId * >(a->get_child()[i]));
+					}
 
 					if($8 != NULL)
 						$$->add($8);
@@ -217,7 +243,7 @@ ListaComando :	Comando {
 Comando :		';' { $$ = NULL; }
 				| Expr ';' {
 					if($1 != NULL){
-						$$ = $1;
+						$$ = static_cast< AssignExpr* >($1);
 						$$->set_location(yylineno);
 					}
 				}
@@ -274,7 +300,8 @@ AssignExpr :	CondExpr {
 					$$->set_location(yylineno);
 				}
 				| LValueExpr'='AssignExpr {
-					$$ = new AssignExpr($1, $3);
+					$$ = new AssignExpr($1, static_cast< Expr* >($3));
+
 					$$->set_location(yylineno);
 				}
 				;
@@ -284,7 +311,7 @@ CondExpr :		OrExpr {
 					$$->set_location(yylineno);
 				}
 				| OrExpr '?' Expr ':' CondExpr {
-					$$ = new TernExpr($1, $3, $5);
+					$$ = new TernExpr(static_cast< Expr* >($1), static_cast< Expr* >($3), static_cast< Expr* >($5));
 					$$->set_location(yylineno);
 				}
 				;

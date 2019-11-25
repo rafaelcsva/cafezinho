@@ -131,6 +131,8 @@ class DeclId : public ASTNode {
 				}
 			}
 
+			// std::cout << *var_id << " declarada com tipo " << dt << " no escopo " << scope_lvl << "\n";
+
 			var_symbol_tab[*var_id].push(std::make_pair(dt, scope_lvl));
 			decl.push(*var_id);
 		}
@@ -153,8 +155,38 @@ class DeclId : public ASTNode {
 			this->var_id = name;
 		}
 
+		std::vector< ASTNode* > get_child(){
+			return this->child;
+		}
+
 		std::string* getVarName() { return this->var_id; }
 		int getVarSize() { return this->var_size; }
+};
+
+class ListaDeclVar : public ASTNode {
+	protected:
+		DataType var_type;
+		std::vector< DeclId* > decl_var;
+	public:
+		void set_type(std::string *st){
+			this->var_type = Helper::get_type_o(st);
+		}
+
+		void add_var(DeclId *var){
+			(this->decl_var).push_back(var);
+		}
+
+		void run(){
+			for(int i = 0 ; i < decl_var.size() ; i++){
+				DeclId *a = decl_var[i];
+
+				a->run(this->var_type);
+			}
+
+			for(int i = 0 ; i < (this->child).size() ; i++){
+				this->child[i]->run();
+			}
+		}
 };
 
 class DeclVar : public ASTNode {
@@ -327,7 +359,7 @@ class Expr : public ASTNode {
 	public:
 		DataType exp_tp;
 	public:
-		void run() {
+		virtual void run(DataType &dt) {
 			for (size_t i = 0; i < child.size(); i++) child[i]->run();
 		}
 
@@ -340,28 +372,83 @@ class Expr : public ASTNode {
 		}
 };
 
-class AssignExpr : public Expr {
+class Identifier : public ASTNode {
+	protected:
+		std::string* id;
 	public:
-		void run() {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		void run(DataType &a) {
+			// std::cout << (*id).length() << " existe ?\n";
+			// std::cout << "sim e tem tipo igual a " << var_symbol_tab[*id].top().first<< "\n";
+
+			if(var_symbol_tab.find(*id) == var_symbol_tab.end()){
+				std::string error = "Variavel " + *id + " nao declarada.";
+				yyerror(error.c_str(), node_location);
+			}
+
+			// printf("erro %d\n", var_symbol_tab["z"].top().first);
+
+			a = var_symbol_tab[*id].top().first;
+			
+			// std::cout << a << "\n";
+			a = var_symbol_tab[*id].top().first;
+			a = var_symbol_tab[*id].top().first;
+			// std::cout << var_symbol_tab[*id].size() << "\n";
+
 		}
 
-		AssignExpr(ASTNode* lhs, ASTNode* rhs) : Expr(INT_T){
-			this->add(lhs);
-			this->add(rhs);
+		Identifier(std::string* id, ASTNode* arr_pos = NULL){
+			this->id = id;
+			this->add(arr_pos);
+		}
+};
+
+class AssignExpr : public Expr {
+	protected:
+		ASTNode *lhs;
+		Expr *rhs;
+	public:
+		void run(DataType &dt) {
+			static_cast< Identifier* >(lhs)->run(dt);
+
+			DataType o;
+
+			rhs->run(o);
+			// std::cout << "AQUI\n";
+
+			if(o != dt){
+				std::cout << dt << " " << o << "\n";
+				std::string error = "Expressao com tipos incompativeis. ";
+				yyerror(error.c_str(), node_location);
+			}
+		}
+
+		AssignExpr(ASTNode* lhs, Expr* rhs) : Expr(INT_T){
+			this->lhs = lhs;
+			this->rhs = rhs;
 		}
 };
 
 class TernExpr : public Expr {
+	protected:
+		Expr *expr, *at1, *at2;
 	public:
-		void run() {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		void run(DataType &dt) {
+			at1->run(dt);
+
+			DataType o;
+
+			at2->run(o);
+
+			if(dt != o){
+				std::string error = "Expressao ternaria com tipos incompativeis.";
+				yyerror(error.c_str(), node_location);
+			}
 		}
 
-		TernExpr(ASTNode* expr, ASTNode* at1, ASTNode* at2) : Expr(INT_T){
-			this->add(expr);
-			this->add(at1);
-			this->add(at2);	
+		TernExpr(Expr* expr, Expr* at1, Expr* at2) : Expr(INT_T){
+			this->expr = expr;
+			this->at1 = at1;
+			this->at2 = at2;
 		}
 };
 
@@ -369,7 +456,7 @@ class BinaryExpr : public Expr {
 	protected:
 		Op op;
 	public:
-		void run() {
+		void run(DataType &dt) {
 			for (size_t i = 0; i < child.size(); i++) child[i]->run();
 		}
 
@@ -384,7 +471,7 @@ class UnaryExpr : public Expr {
 	protected:
 		UnOp op;
 	public:
-		void run() {
+		void run(DataType &dt) {
 			for (size_t i = 0; i < child.size(); i++) child[i]->run();
 		}
 
@@ -398,9 +485,11 @@ class UnaryExpr : public Expr {
 class ConstExpr : public Expr {
 	protected:
 		std::string* value;
+		DataType exp_tp;
 	public:
-		void run() {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		void run(DataType &dt) {
+			dt = this->exp_tp;
+			// std::cout << "const expr com tipo" << dt << "\n";
 		}
 
 		ConstExpr(DataType dt, std::string* val) : Expr(dt){
@@ -489,23 +578,6 @@ class ArgList : public ASTNode {
 		}
 };
 
-class Identifier : public ASTNode {
-	protected:
-		DataType var_tp;
-		std::string* id;
-	public:
-		void run() {
-			if(var_symbol_tab.find(*id) == var_symbol_tab.end()){
-				std::string error = "Variavel " + *id + " nao declarada.";
-			}
-		}
-
-		Identifier(std::string* id, ASTNode* arr_pos = NULL){
-			this->id = id;
-			this->add(arr_pos);
-		}
-};
-
 class Leia : public ASTNode{
 	protected:
 		Identifier* var_id;
@@ -548,7 +620,9 @@ class ListaCmd : public ASTNode{
 	public:
 		void run(){
 			for(int i = 0 ; i < child.size() ; i++){
-				child[i]->run();
+				DataType test;
+
+				static_cast< AssignExpr* >(child[i])->run(test);
 			}
 		}
 };
@@ -556,6 +630,9 @@ class ListaCmd : public ASTNode{
 class Stmt : public ASTNode{
 	public:
 		void run() {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+			for (size_t i = 0; i < child.size(); i++){ 
+				
+				child[i]->run();
+			}
 		}
 };
