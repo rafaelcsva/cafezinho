@@ -1,3 +1,4 @@
+
 int selectionSort (int vet[], int n){
   int i,j, x, Min;
   i=1;

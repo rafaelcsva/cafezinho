@@ -1,4 +1,3 @@
-int n;
 /* Este e um programa CORRETO em Cafezinho que calcula o fatorial de um nmero*/
 int fatorial(int n){
 	se (n==0)
@@ -9,6 +8,7 @@ int fatorial(int n){
 }
 
 programa {
+	int n;
 	n =1;
 	enquanto (n>0) execute {
        		escreva "digite um numero";

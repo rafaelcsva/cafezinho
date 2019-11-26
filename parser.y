@@ -42,7 +42,6 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 					$$ = new DeclVar();
 					static_cast< DeclVar* >($$)->setDataType($2);
 
-					static_cast< DeclVar* >($$)->setDataType($2);
 					$3->add_back(new DeclId($2));
 					$$->add($3);
 
@@ -69,8 +68,9 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 
 					$$->add($3);
 
-					if($4 != NULL)
+					if($4 != NULL){	
 						$$->add($4);
+					}
 
 					$$->set_location(yylineno);
 				}
@@ -111,6 +111,7 @@ DeclVar :		',' ID DeclVar {
 
 DeclFunc :		'('ListaParametros')' Bloco {
 					$$ = new FuncBody($2, $4);
+					printf("body func\n");
 
 					$$->set_location(yylineno);
 				}
@@ -121,7 +122,7 @@ ListaParametros :	%empty { $$ = NULL; }
 						if($1 != NULL){
 							$$ = $1;
 						}else{
-							$$ = new FuncParametro();
+							$$ = NULL;
 						}
 
 						$$->set_location(yylineno);
@@ -135,17 +136,20 @@ ListaParametrosCont :	TIPO ID {
 
 							$$->set_location(yylineno);
 						}
-						| TIPO ID '['']' {
+						| TIPO ID'['']' {
 							$$ = new FuncParametro();
 							static_cast< FuncParametro* >($$)->setDataType($1);
 							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->set_location(yylineno);
 						}
-						| TIPO ID',' ListaParametrosCont {
+						| TIPO ID','ListaParametrosCont {
+							
 							$$ = new FuncParametro();
 							static_cast< FuncParametro* >($$)->setDataType($1);
 							static_cast< FuncParametro* >($$)->setName($2);
+
+							$$->add($4);
 
 							$$->set_location(yylineno);
 						}
@@ -163,16 +167,19 @@ ListaParametrosCont :	TIPO ID {
 Bloco :			'{'ListaDeclVar ListaComando'}' {
 					$$ = new Bloco();
 					
-					$$->add($2);
-					$$->add($3);
-					printf("aqui!\n");
+					if($2 != NULL)
+						$$->add($2);
+					
+					if($3 != NULL)
+						$$->add($3);
 
 					$$->set_location(yylineno);
 				}
 				| '{'ListaDeclVar'}' {
 					$$ = new Bloco();
 
-					$$->add($2);
+					if($2 != NULL)
+						$$->add($2);
 
 					$$->set_location(yylineno);
 				}
@@ -186,6 +193,7 @@ ListaDeclVar :	%empty { $$ = NULL; }
 
 					if($3 == NULL){
 						$3 = new DeclId($2);
+						static_cast< DeclId* >($3)->add_back(new DeclId($2));
 					}else{
 						static_cast< DeclId* >($3)->add_back(new DeclId($2));
 					}
@@ -208,6 +216,7 @@ ListaDeclVar :	%empty { $$ = NULL; }
 					
 					if($6 == NULL){
 						$6 = new DeclId($2, $4);
+						static_cast< DeclId* >($6)->add_back(new DeclId($2, $4));
 					}else{
 						static_cast< DeclId* >($6)->add_back(new DeclId($2, $4));
 					}
@@ -413,7 +422,7 @@ UnExpr :		'-'PrimExpr {
 					$$->set_location(yylineno);
 				}
 				| PrimExpr {
-					$$ = new UnaryExpr($1);
+					$$ = $1;
 					$$->set_location(yylineno);
 				}
 				;
@@ -465,6 +474,7 @@ PrimExpr :		ID '('ListExpr')' {
 				;
 
 ListExpr :		AssignExpr {
+					printf("atutu\n");
 					$$ = new ArgList();
 					$$->add($1);
 					

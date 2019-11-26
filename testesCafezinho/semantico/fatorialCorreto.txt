@@ -10,14 +10,5 @@ int fatorial(int n){
 programa {
 	int n;
 	n =1;
-	enquanto (n>0) execute {
-       		escreva "digite um numero";
-       		novalinha;
-       		leia n;    
-	}	
-	escreva "O fatorial de ";
-	escreva n;
-	escreva " e: ";
-	escreva fatorial(n);
-	novalinha;
+	
 }

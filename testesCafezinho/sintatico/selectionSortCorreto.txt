@@ -1,7 +1,8 @@
 /*Este programa 
 esta sintaticamente e 
 semanticamente correto*/
-int selectionSort (int vet[], int n){
+int selectionSort
+ (int vet[], int n){
   int i, x;
   i=1;
   enquanto( i<=n-1) execute{
