@@ -55,6 +55,8 @@ static VarSymTab var_symbol_tab;
 static FuncSymTab func_symbol_tab;
 static std::stack< std::string > decl;
 static int scope_lvl = 0;
+static bool inside_func = false;
+static DataType func_ttp;
 
 class ASTNode {
 	protected:
@@ -86,12 +88,16 @@ class ASTNode {
 		virtual void run() {
 			for( size_t i = 0; i < child.size(); i++ ) child[i]->run();
 		}
+
+		virtual void run(DataType &dt) {
+			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		}
 };
 
 class Helper{
 	public:
 		static DataType get_type_o(std::string *dt, bool is_array = false){
-			if(*dt == "char"){
+			if(*dt == "car"){
 				if(!is_array)
 					return CHAR_T;
 				else
@@ -102,6 +108,26 @@ class Helper{
 				else
 					return INT_ARRAY_T;
 			}
+		}
+
+		static bool incompativel(DataType a, DataType b){
+			if(a == CHAR_ARRAY_T){
+				a = CHAR_T;
+			}
+
+			if(a == INT_ARRAY_T){
+				a = INT_T;
+			}
+
+			if(b == INT_ARRAY_T){
+				b = INT_T;
+			}
+
+			if(b == CHAR_ARRAY_T){
+				b = CHAR_T;
+			}
+
+			return a != b;
 		}
 };
 
@@ -131,8 +157,20 @@ class DeclId : public ASTNode {
 				}
 			}
 
+			// std::cout << *var_id << " com tipo " << dt << " declarada no escopo " << scope_lvl << "\n";
+
 			var_symbol_tab[*var_id].push(std::make_pair(dt, scope_lvl));
 			decl.push(*var_id);
+		}
+
+		void get_ids(std::vector< ASTNode* > &v){
+			v.push_back(this);
+
+			// printf("ids tem %lu filhos!\n", this->child.size());
+
+			if(this->child.size()){
+				static_cast< DeclId* >(this->child[0])->get_ids(v);
+			}
 		}
 
 		DeclId(std::string *identifier){
@@ -175,7 +213,7 @@ class ListaDeclVar : public ASTNode {
 		}
 
 		void run(){
-			printf("declarando variaveis! %lu\n", decl_var.size());
+			// printf("declarando variaveis! %lu\n", decl_var.size());
 
 			for(int i = 0 ; i < decl_var.size() ; i++){
 				DeclId *a = decl_var[i];
@@ -274,7 +312,7 @@ class FuncBody : public ASTNode {
 		}
 
 		void run() {
-			std::cout << "rodando FuncBody\n";
+			// std::cout << "rodando FuncBody\n";
 			// for (size_t i = 0; i < child.size(); i++) child[i]->run();
 		}
 
@@ -291,6 +329,9 @@ class FuncDecl : public ASTNode {
 	public:
 		FuncDecl(std::string *tp, std::string *nm){
 			this->func_name = nm;
+			// std::cout << *tp << " eh o tipo da minha funcao!\n";
+			func_type = Helper::get_type_o(tp);
+			// printf("possui tipo %d\n", func_type);
 		}
 
 		FuncBody* get_func_body(){
@@ -298,6 +339,10 @@ class FuncDecl : public ASTNode {
 		}
 
 		void run(){
+			inside_func = true;
+			func_ttp = this->func_type;
+			// printf("a funcao tem tipo %d\n", func_ttp);
+
 			if(var_symbol_tab.find(*func_name) != var_symbol_tab.end()){
 				std::string error = "A função " + *func_name + " nao pode ter o mesmo nome que uma variavel declarada no mesmo escopo.";
 				yyerror(error.c_str(), node_location);
@@ -307,7 +352,7 @@ class FuncDecl : public ASTNode {
 				std::string error = "A função " + *func_name + " ja possui uma definicao previa.";
 				yyerror(error.c_str(), node_location);
 			}else{
-				std::cout << *func_name << " declarada!\n";
+				// std::cout << *func_name << " declarada!\n";
 				func_symbol_tab[*func_name] = this;
 			}
 
@@ -325,12 +370,14 @@ class FuncDecl : public ASTNode {
 			scope_lvl--;
 
 			while(decl.top() != "#"){
-				std::cout << decl.top() << " sendo tirado!\n";
+				// std::cout << decl.top() << " sendo tirado!\n";
 				var_symbol_tab[decl.top()].pop();
 				decl.pop();
 			}
 
 			decl.pop();
+
+			inside_func = false;
 		}
 };
 
@@ -338,10 +385,6 @@ class Expr : public ASTNode {
 	public:
 		DataType exp_tp;
 	public:
-		virtual void run(DataType &dt) {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
-		}
-
 		Expr(DataType dt){
 			this->exp_tp = dt;
 		}
@@ -367,15 +410,21 @@ class Se : public Expr {
 		}
 };
 
-class Enquanto : public ASTNode {
+class Enquanto : public Expr {
 	public:
-		void run() {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		void run(DataType &dt) {
+			// printf("Enquanto tem %lu filhos!\n", child.size());
+
+			for (size_t i = 0; i < child.size(); i++){
+				child[i]->run(dt);
+			}
 		}
 
 		Enquanto(ASTNode* expr, ASTNode* stmt){
 			this->add(expr);
-			this->add(stmt);
+			if(stmt != NULL){
+				this->add(stmt);
+			}
 		}
 };
 
@@ -384,18 +433,21 @@ class Identifier : public Expr {
 		std::string* id;
 	public:
 		void run(DataType &a) {
-			std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
+			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
 
-			if(var_symbol_tab.find(*id) == var_symbol_tab.end()){
+			if(var_symbol_tab.find(*id) == var_symbol_tab.end() || var_symbol_tab[*id].empty()){
 				std::string error = "Variavel " + *id + " nao declarada.";
 				yyerror(error.c_str(), node_location);
 			}
+
+			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
 
 			a = var_symbol_tab[*id].top().first;
 		}
 
 		Identifier(std::string* id, ASTNode* arr_pos = NULL) : Expr(INT_T){
 			this->id = id;
+
 			this->add(arr_pos);
 		}
 };
@@ -411,9 +463,8 @@ class AssignExpr : public Expr {
 			DataType o;
 
 			rhs->run(o);
-			// std::cout << "AQUI\n";
 
-			if(o != dt){
+			if(Helper::incompativel(o, dt)){
 				// std::cout << dt << " " << o << "\n";
 				std::string error = "Expressao com tipos incompativeis. ";
 				yyerror(error.c_str(), node_location);
@@ -497,7 +548,7 @@ class ConstExpr : public Expr {
 		void run(DataType &dt) { 
 			dt = this->exp_tp;
 
-			std::cout << "rodando const expr tem tipo " << dt << "\n";
+			// std::cout << "rodando const expr tem tipo " << dt << "\n";
 			// std::cout << "const expr com tipo" << dt << "\n";
 		}
 
@@ -537,8 +588,8 @@ class FuncCall : public Expr {
 		std::string* func_id;
 	public:
 		void run(DataType &dt) {
-			printf("chamei uma funcao!\n");
-			std::cout << *func_id << "\n";
+			// printf("chamei uma funcao!\n");
+			// std::cout << *func_id << "\n";
 
 			dt = INT_T;
 
@@ -568,7 +619,7 @@ class FuncCall : public Expr {
 				params->get_params(param_list);
 			}
 
-			printf("|params| = %lu\n", param_list.size());
+			// printf("|params| = %lu\n", param_list.size());
 
 			if(args.size() != param_list.size()){
 				std::string error = "Numero de parametros para a função " + *func_id + " incorretos";
@@ -639,6 +690,13 @@ class Return : public Expr {
 		void run(DataType &dt) {
 			rval->run(dt);
 
+			// printf("xxxx == = %d %d\n", inside_func, func_ttp);
+
+			if(inside_func && dt != func_ttp){
+				std::string error = "A funcao possui um retorno com tipo diferente da declaracao";
+				yyerror(error.c_str(), node_location);
+			}
+
 			rtype = dt;
 		}
 };
@@ -649,7 +707,17 @@ class ListaCmd : public ASTNode{
 			for(int i = 0 ; i < child.size() ; i++){
 				DataType test;
 
-				static_cast< Expr* >(child[i])->run(test);
+				child[i]->run(test);
+			}
+		}
+
+		void run(DataType &dt){
+			// printf("aqui!\n");
+
+			for(int i = 0 ; i < child.size() ; i++){
+				DataType test;
+
+				child[i]->run(test);
 			}
 		}
 };

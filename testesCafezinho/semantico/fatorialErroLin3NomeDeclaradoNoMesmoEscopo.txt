@@ -1,6 +1,6 @@
 /* Este  e um programa com ERRO */
 car fatorial(int n){
-        int n;
+	int n;
 	se (n==0)
 	entao
 		retorne 1;

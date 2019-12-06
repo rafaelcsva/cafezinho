@@ -14,7 +14,7 @@ int selectionSort (int vet[], int n){
 		   Min=j;
 		j=j+1;
 	
-	x=vet[Min]; vet[Min]=vet[i]; vet[i]=x;
+	x=vet; vet[Min]=vet[i]; vet[i]=x;
   	i=i+1;
   }  
   retorne 1;
@@ -43,5 +43,3 @@ programa{
 	i=i+1;
    }
 }
-
-

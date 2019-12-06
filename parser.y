@@ -83,25 +83,21 @@ DeclProg :		PROGRAMA Bloco {
 				;
 
 DeclVar :		',' ID DeclVar {
-					if($3 != NULL){
-						$$ = $3;
+					$$ = new DeclId($2);
 
-						$$->add_back(new DeclId($2));
-					}else{
-						$$ = new DeclId($2);
+					if($3 != NULL){
+						$$->add($3);
 					}
 
 					$$->set_location(yylineno);
 				}
 				| ',' ID'['INTCONST']' DeclVar {
-					if($6 != NULL){
-						$$ = $6;
-
-						$$->add_back(new DeclId($2, $4));
-					}else{
-						$$ = new DeclId($2, $4);
-					}
+					$$ = new DeclId($2, $4);
 					
+					if($6 != NULL){
+						$$->add($6);
+					}
+
 					$$->set_location(yylineno);
 				}
 				| %empty { 
@@ -111,7 +107,6 @@ DeclVar :		',' ID DeclVar {
 
 DeclFunc :		'('ListaParametros')' Bloco {
 					$$ = new FuncBody($2, $4);
-					printf("body func\n");
 
 					$$->set_location(yylineno);
 				}
@@ -191,17 +186,19 @@ ListaDeclVar :	%empty { $$ = NULL; }
 
 					static_cast< ListaDeclVar* >($$)->set_type($1);
 
-					if($3 == NULL){
-						$3 = new DeclId($2);
-						static_cast< DeclId* >($3)->add_back(new DeclId($2));
-					}else{
-						static_cast< DeclId* >($3)->add_back(new DeclId($2));
-					}
+					DeclId* a = new DeclId($2);
+					a->set_location(yylineno);
+					
+					if($3 != NULL){
+						a->add($3);
+					}				
 
-					DeclId *a = (DeclId*) $3;
+					std::vector< ASTNode* > childs;
 
-					for(int i = 0 ; i < (a->get_child()).size() ; i++){
-						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId * >(a->get_child()[i]));
+					a->get_ids(childs);
+						
+					for(int i = 0 ; i < childs.size() ; i++){
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId* >(childs[i]));
 					}
 
 					if($5 != NULL)
@@ -214,17 +211,18 @@ ListaDeclVar :	%empty { $$ = NULL; }
 
 					static_cast< ListaDeclVar* >($$)->set_type($1);
 					
-					if($6 == NULL){
-						$6 = new DeclId($2, $4);
-						static_cast< DeclId* >($6)->add_back(new DeclId($2, $4));
-					}else{
-						static_cast< DeclId* >($6)->add_back(new DeclId($2, $4));
+					DeclId* a = new DeclId($2, $4);
+					a->set_location(yylineno);
+
+					if($6 != NULL){
+						a->add($6);
 					}
 
-					DeclId *a = (DeclId*) $6;
+					std::vector< ASTNode* > childs;
+					a->get_ids(childs);
 
-					for(int i = 0 ; i < (a->get_child()).size() ; i++){
-						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId * >(a->get_child()[i]));
+					for(int i = 0 ; i < childs.size() ; i++){
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId* >(childs[i]));
 					}
 
 					if($8 != NULL)
@@ -249,7 +247,7 @@ ListaComando :	Comando {
 				}
 				;
 
-Comando :		';' { $$ = NULL; }
+Comando :		';' {$$ = NULL; }
 				| Expr ';' {
 					if($1 != NULL){
 						$$ = static_cast< AssignExpr* >($1);
@@ -474,7 +472,6 @@ PrimExpr :		ID '('ListExpr')' {
 				;
 
 ListExpr :		AssignExpr {
-					printf("atutu\n");
 					$$ = new ArgList();
 					$$->add($1);
 					
