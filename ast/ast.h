@@ -65,7 +65,7 @@ typedef std::map<std::string, std::stack< VarNode > > VarSymTab;
 typedef std::map<std::string, FuncDecl*> FuncSymTab;
 static std::stack< DataType > func_ttp;
 static std::stack< std::string > func_call_stack;
-const int N = 1000;
+const int N = 1000, SIZE_ARRAY = 100;
 static int escopo[N];
 static std::vector< VarNode > globals;
 static VarSymTab var_symbol_tab;
@@ -77,8 +77,10 @@ static bool moved_s1 = false;
 static int st_num = 0;
 static int label = 0;
 static int enquanto_num = 0;
-static std::map< std::string, std::vector< std::string > > func_params;
+static std::map< std::string, std::vector< std::pair< std::string, int > > > func_params;
 static int lsize = 0;
+static int totglobals = 0;
+static std::map< std::string, bool > taked;
 
 class ASTNode {
 	protected:
@@ -164,18 +166,19 @@ class Identifier : public Expr {
 			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
 
 			a = var_symbol_tab[*id].top().first;
+
 		}
 
 		void generate_code(){
 			if(var_symbol_tab[*this->get_id()].empty()){//entao ele eh um parametro da funcao..
 				int pos = 0;
 
-				for(std::string u : func_params[func_call_stack.top()]){
-					if(u == *this->get_id()){
+				for(std::pair< std::string, int > u: func_params[func_call_stack.top()]){
+					if(u.first == *this->get_id()){
 						break;
 					}
 
-					pos++;
+					pos += u.second;
 				}
 
 				printf("lw $s0, %d($fp)\n", (pos + 1) * 4);
@@ -223,6 +226,7 @@ class Identifier : public Expr {
 
 class Helper{
 	public:
+
 		static DataType get_type_o(std::string *dt, bool is_array = false){
 			if(*dt == "car"){
 				if(!is_array)
@@ -257,6 +261,16 @@ class Helper{
 			return a != b;
 		}
 
+		static int get_size_params(){
+			int tot = 0;
+
+			for(std::pair< std::string, int > u: func_params[func_call_stack.top()]){
+				tot += u.second;
+			}
+
+			return tot;
+		}
+
 		static int get_deslocamento(Identifier *id){
 			VarNode a = var_symbol_tab[*id->get_id()].top();
 
@@ -271,9 +285,9 @@ class Helper{
 			return d;
 		}
 
-		static void empilha_s0(){
-			printf("sw $s0, 0($sp)\n"); 
-			printf("addiu $sp, $sp, -4\n");
+		static void empilha_s0(int sz = 1){
+			printf("sw $s0, 0($sp)\n");
+			printf("addiu $sp, $sp, %d\n", -4 * sz);
 		}
 
 		static void desempilhar(){
@@ -313,6 +327,11 @@ class DeclId : public ASTNode {
 
 			if(scope_lvl == 0){
 				globals.push_back({dt, scope_lvl, var_size, escopo[scope_lvl]});
+				if(!taked[*var_id])
+					totglobals += var_size == -1 ? 1 : var_size;
+		
+				taked[*var_id] = true;
+
 			}
 
 			var_symbol_tab[*var_id].push({dt, scope_lvl, var_size, escopo[scope_lvl]});
@@ -393,6 +412,7 @@ class ListaDeclVar : public ASTNode {
 
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
+				Helper::empilha_s0(totglobals);
 				printf("b MAIN\n");
 				moved_s1 = true;
 			}
@@ -403,7 +423,8 @@ class ListaDeclVar : public ASTNode {
 				tot += (a->getVarSize() == -1 ? 1 : a->getVarSize());
 			}
 
-			printf("addiu $sp, $sp, %d\n", -tot * 4);//Deslocar a pilha o número de variáveis + 1
+			if(scope_lvl != 0)
+				printf("addiu $sp, $sp, %d\n", -tot * 4);//Deslocar a pilha o número de variáveis + 1
 
 			for(int i = 0 ; i < (this->child).size() ; i++){
 				this->child[i]->generate_code();
@@ -467,6 +488,10 @@ class FuncParametro : public ASTNode{
 			this->dt = Helper::get_type_o(d, is_array);
 		}
 
+		DataType get_type(){
+			return dt;
+		}
+
 		void setName(std::string *id){
 			this->id_name = id;
 		}
@@ -513,6 +538,29 @@ class FuncBody : public ASTNode {
 			// for (size_t i = 0; i < child.size(); i++) child[i]->run();
 		}
 
+		void generate_code(){
+			FuncBody *body = this;
+			FuncParametro *params = body->get_params();
+
+			std::vector< FuncParametro* > param_list;
+
+			if(params != NULL){
+				params->get_params(param_list);
+			}
+
+			for(int i = 0 ; i < param_list.size() ; i++){
+				FuncParametro *e = param_list[i];
+
+				int sz = 1;
+
+				if(e->get_type() != CHAR_T && e->get_type() != INT_T){
+					sz = SIZE_ARRAY;
+				}
+
+				func_params[func_call_stack.top()].push_back({e->get_name(), sz});
+			}
+		}
+
 		FuncBody(ASTNode *par, ASTNode *bod){
 			this->params = static_cast< FuncParametro* > (par);
 			this->body = static_cast< Bloco* > (bod);
@@ -538,20 +586,24 @@ class FuncDecl : public ASTNode {
 		void generate_code(){
 			func_symbol_tab[*func_name] = this;
 
-			int mf = label;
+			printf("%s:\n", func_name->c_str());
 
-			label++;
-
-			printf("FUNC%d:\n", mf);
+			printf("move $fp, $sp\n");
+			printf("sw $ra, 0($sp)\n");
+			printf("addiu $sp, $sp, -4\n");
 
 			func_call_stack.push(*func_name);
 
 			if(this->child[0] != NULL){
+				if(((FuncBody*)this->child[0])->params != NULL){
+					(((FuncBody*)this->child[0])->params)->generate_code();
+				}
+
 				if(((FuncBody*)this->child[0])->body != NULL)
 					(((FuncBody*) this->child[0])->body)->generate_code();
 			}
 
-			printf("FIMFUNC%d:\n", mf);
+			printf("FIM%s:\n", func_name->c_str());
 			
 			func_call_stack.pop();
 		}
@@ -817,13 +869,22 @@ class BinaryExpr : public Expr {
 				printf("sub $s0, $t1, $s0\n");
 			}else if(op == TIMES){
 				printf("mult $s0, $t1\n");
-				printf("lw $s0, 0($LO)\n");
+				printf("mflo $s0\n");
 			}else if(op == DIVIDES){
 				printf("div $s0, $t1\n");
-				printf("lw $s0, 0($LO)\n");
+				printf("mflo $s0\n");
 			}else if(op == MOD){
 				printf("div $s0, $t1\n");
-				printf("lw $s0, 0($HI)\n");
+				printf("mfhi $s0\n");
+			}else if(op == EQUALS){
+				printf("beq $s0, $t1, A%d\n", label);
+				printf("blez $s0, A%d\n", label);
+				printf("li $s0, 0\n");
+				printf("b FIM_A%d\n", label);
+				printf("A%d:\n", label);
+				printf("li $s0, 1\n");
+				printf("FIM_A%d:\n", label);
+				label++;
 			}
 			
 		}
@@ -834,7 +895,11 @@ class UnaryExpr : public Expr {
 		UnOp op;
 	public:
 		void run(DataType &dt) {
-			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+			for (size_t i = 0; i < child.size(); i++){
+				static_cast< Expr* >(child[i])->run(dt);	
+			} 
+
+			this->exp_tp = dt;
 		}
 
 		UnaryExpr(ASTNode* expr, UnOp opt = NOTHING) : Expr(INT_T){
@@ -973,20 +1038,20 @@ class FuncCall : public Expr {
 				params->get_params(param_list);
 			}
 
-			// printf("|params| = %lu\n", param_list.size());
-
-			if(args.size() != param_list.size()){
-				std::string error = "Numero de parametros para a função " + *func_id + " incorretos";
-				yyerror(error.c_str(), node_location);
-			}
-
-			for(int i = 0 ; i < args.size() ; i++){
+			for(int i = int(args.size()) - 1 ; i >= 0 ; i--){
 				Expr *r = (Expr*) args[i];
-				int sz = 0;
+				int sz = 1;
 
 				r->generate_code();
 
+				if(r->exp_tp != CHAR_T && r->exp_tp != INT_T){
+					sz = SIZE_ARRAY;
+				}
+
+				Helper::empilha_s0(sz);
 			}
+
+			printf("jal %s\n", func_id->c_str());
 		}
 
 		FuncCall(std::string* func_nm, ASTNode* args = NULL) : Expr(INT_T){
@@ -1100,7 +1165,7 @@ class Return : public Expr {
 			//voltar pilha...
 			printf("lw $ra, 0($fp)\n");
 			printf("move $sp, $fp\n");
-			printf("addiu $sp, $sp, %lu\n", (func_params[func_call_stack.top()].size() + 1) * 4);
+			printf("addiu $sp, $sp, %d\n", (Helper::get_size_params() + 1) * 4);
 			printf("lw $fp, 0($sp)\n");
 			printf("jr $ra\n");
 		}

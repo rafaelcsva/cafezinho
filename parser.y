@@ -73,8 +73,6 @@ DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
 					a->get_ids(childs);
 
 					for(int i = 0 ; i < childs.size() ; i++){
-						std::cout << *static_cast< DeclId* >(childs[i])->getVarName() << '\n';
-
 						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId* >(childs[i]));
 					}
 
