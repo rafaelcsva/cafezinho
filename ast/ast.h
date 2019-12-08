@@ -7,6 +7,7 @@
 #include <set>
 #include <sstream>
 #include <map>
+#include <string.h>
 
 void yyerror(const char *);
 void yyerror(const char *, int);
@@ -49,14 +50,29 @@ enum UnOp{
 	NOTHING
 };
 
-typedef std::map<std::string, std::stack< std::pair<DataType,int> > > VarSymTab;
+class VarNode{
+public:
+	DataType first;
+	int second;//scope-level-comes-here
+	int size = -1;
+	int position;
+};
+
+typedef std::map<std::string, std::stack< VarNode > > VarSymTab;
 typedef std::map<std::string, FuncDecl*> FuncSymTab;
+const int N = 1000;
+static int escopo[N];
+static std::vector< VarNode > globals;
 static VarSymTab var_symbol_tab;
 static FuncSymTab func_symbol_tab;
 static std::stack< std::string > decl;
 static int scope_lvl = 0;
 static bool inside_func = false;
 static DataType func_ttp;
+static bool moved_s1 = false;
+static int st_num = 0;
+static int label = 0;
+static int enquanto_num = 0;
 
 class ASTNode {
 	protected:
@@ -91,6 +107,80 @@ class ASTNode {
 
 		virtual void run(DataType &dt) {
 			for (size_t i = 0; i < child.size(); i++) child[i]->run();
+		}
+
+		virtual void generate_code(){
+			if(!moved_s1){
+				printf("move $s1, $sp\n");
+				moved_s1 = true;
+			}
+			
+			for (size_t i = 0; i < child.size(); i++){
+				if(child[i] == NULL) continue;
+
+				child[i]->generate_code();
+			} 
+		}
+};
+
+
+class Expr : public ASTNode {
+	public:
+		DataType exp_tp;
+	public:
+		Expr(DataType dt){
+			this->exp_tp = dt;
+		}
+
+		Expr(){
+			this->exp_tp = INT_T;
+		}
+
+		DataType get_type(){
+			return exp_tp;
+		}
+};
+
+class Identifier : public Expr {
+	protected:
+		std::string* id;
+	public:
+		void run(DataType &a) {
+			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
+
+			if(var_symbol_tab.find(*id) == var_symbol_tab.end() || var_symbol_tab[*id].empty()){
+				std::string error = "Variavel " + *id + " nao declarada.";
+				yyerror(error.c_str(), node_location);
+			}
+
+			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
+
+			a = var_symbol_tab[*id].top().first;
+		}
+
+		void generate_code(){
+
+			VarNode a = var_symbol_tab[*this->get_id()].top();
+
+			int d = 0;
+
+			for(int i = 0 ; i < a.second ; i++){
+				d += escopo[i];
+			}
+
+			d += a.position;
+
+			printf("lw $s0, %d($s1)\n", d);//acesso
+		}
+
+		Identifier(std::string* id, ASTNode* arr_pos = NULL) : Expr(INT_T){
+			this->id = id;
+
+			this->add(arr_pos);
+		}
+
+		std::string* get_id(){
+			return this->id;
 		}
 };
 
@@ -129,6 +219,29 @@ class Helper{
 
 			return a != b;
 		}
+
+		static int get_deslocamento(Identifier *id){
+			VarNode a = var_symbol_tab[*id->get_id()].top();
+
+			int d = 0;
+
+			for(int i = 0 ; i < a.second ; i++){
+				d += escopo[i];
+			}
+
+			d += a.position;
+			
+			return d;
+		}
+
+		static void empilha_s0(){
+			printf("sw $s0, 0($sp)\n"); 
+			printf("addiu $sp, $sp, -4\n");
+		}
+
+		static void desempilhar(){
+			printf("addiu $sp, $sp, 4\n");
+		}
 };
 
 class DeclId : public ASTNode {
@@ -137,6 +250,8 @@ class DeclId : public ASTNode {
 		int var_size = -1;
 	public:
 		void run(DataType dt){
+			// std::cout << "declarando " << *var_id << '\n';
+
 			if(func_symbol_tab.find(*var_id) != func_symbol_tab.end()){
 				std::string error = "Declaracao previa de funcao com mesmo nome (" + *var_id + ")";
 				yyerror(error.c_str(), node_location);
@@ -159,7 +274,13 @@ class DeclId : public ASTNode {
 
 			// std::cout << *var_id << " com tipo " << dt << " declarada no escopo " << scope_lvl << "\n";
 
-			var_symbol_tab[*var_id].push(std::make_pair(dt, scope_lvl));
+			if(scope_lvl == 0){
+				globals.push_back({dt, scope_lvl, var_size, escopo[scope_lvl]});
+			}
+
+			var_symbol_tab[*var_id].push({dt, scope_lvl, var_size, escopo[scope_lvl]});
+			escopo[scope_lvl] += (var_size == -1) ? 1 : var_size;
+
 			decl.push(*var_id);
 		}
 
@@ -213,8 +334,6 @@ class ListaDeclVar : public ASTNode {
 		}
 
 		void run(){
-			// printf("declarando variaveis! %lu\n", decl_var.size());
-
 			for(int i = 0 ; i < decl_var.size() ; i++){
 				DeclId *a = decl_var[i];
 
@@ -223,6 +342,33 @@ class ListaDeclVar : public ASTNode {
 
 			for(int i = 0 ; i < (this->child).size() ; i++){
 				this->child[i]->run();
+			}
+		}
+
+		void generate_code(){
+			for(int i = 0 ; i < decl_var.size() ; i++){
+				DeclId *a = decl_var[i];
+
+				a->run(this->var_type);
+			}
+
+			int tot = 0;
+
+			if(!moved_s1){
+				printf("move $s1, $sp\n");
+				moved_s1 = true;
+			}
+
+			for(int i = 0 ; i < decl_var.size() ; i++){
+				DeclId *a = decl_var[i];
+
+				tot += (a->getVarSize() == -1 ? 1 : a->getVarSize());
+			}
+
+			printf("addiu $sp, $sp, %d\n", -(tot + 1) * 4);//Deslocar a pilha o número de variáveis + 1
+
+			for(int i = 0 ; i < (this->child).size() ; i++){
+				this->child[i]->generate_code();
 			}
 		}
 };
@@ -249,6 +395,8 @@ class DeclVar : public ASTNode {
 class Bloco : public ASTNode{
 	public:
 		void run(){
+			decl.push("#");
+
 			for(int i = 0 ; i < child.size() ; i++){
 				if(child[i] == NULL) continue;
 
@@ -256,12 +404,19 @@ class Bloco : public ASTNode{
 					scope_lvl++;
 
 					child[i]->run();
-
+					
 					scope_lvl--;
 				}else{
 					child[i]->run();
 				}
 			}
+
+			while(decl.top() != "#"){
+				var_symbol_tab[decl.top()].pop();
+				decl.pop();
+			}
+
+			decl.pop();
 		}
 };
 
@@ -285,7 +440,7 @@ class FuncParametro : public ASTNode{
 				yyerror(error.c_str(), node_location);
 			}
 
-			var_symbol_tab[*id_name].push(std::make_pair(dt, scope_lvl));
+			var_symbol_tab[*id_name].push({dt, scope_lvl});
 			decl.push(*id_name);
 
 			for(int i = 0 ; i < child.size() ; i++){
@@ -362,7 +517,7 @@ class FuncDecl : public ASTNode {
 			if(this->child[0] != NULL){
 				if(((FuncBody*)this->child[0])->params != NULL)
 					(((FuncBody*)this->child[0])->params)->run();
-				
+
 				if(((FuncBody*)this->child[0])->body != NULL)
 					(((FuncBody*) this->child[0])->body)->run();
 			}
@@ -378,19 +533,6 @@ class FuncDecl : public ASTNode {
 			decl.pop();
 
 			inside_func = false;
-		}
-};
-
-class Expr : public ASTNode {
-	public:
-		DataType exp_tp;
-	public:
-		Expr(DataType dt){
-			this->exp_tp = dt;
-		}
-
-		Expr(){
-			this->exp_tp = INT_T;
 		}
 };
 
@@ -426,29 +568,23 @@ class Enquanto : public Expr {
 				this->add(stmt);
 			}
 		}
-};
 
-class Identifier : public Expr {
-	protected:
-		std::string* id;
-	public:
-		void run(DataType &a) {
-			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
-
-			if(var_symbol_tab.find(*id) == var_symbol_tab.end() || var_symbol_tab[*id].empty()){
-				std::string error = "Variavel " + *id + " nao declarada.";
-				yyerror(error.c_str(), node_location);
+		void generate_code(){
+			int meq = enquanto_num;
+			enquanto_num++;
+			printf("ENQUANTO%d:\n", meq);
+			child[0]->generate_code();
+			printf("beq $s0, 0, FIMENQUANTO%d\n", meq);
+			
+			if(child.size() > 1){
+				child[1]->generate_code();
 			}
 
-			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
+			child[0]->generate_code();
+			
+			printf("beq $s0, 1, ENQUANTO%d\n", meq);
 
-			a = var_symbol_tab[*id].top().first;
-		}
-
-		Identifier(std::string* id, ASTNode* arr_pos = NULL) : Expr(INT_T){
-			this->id = id;
-
-			this->add(arr_pos);
+			printf("FIMENQUANTO%d:\n",meq);
 		}
 };
 
@@ -469,6 +605,18 @@ class AssignExpr : public Expr {
 				std::string error = "Expressao com tipos incompativeis. ";
 				yyerror(error.c_str(), node_location);
 			}
+		}
+
+		void generate_code(){
+			rhs->generate_code();
+			
+			Identifier *id = static_cast< Identifier* >(lhs);
+
+			// std::cout << *id->get_id() << " " << var_symbol_tab[*id->get_id()].size();
+
+			int d = Helper::get_deslocamento(id);
+
+			printf("sw $s0, %d($s1)\n", -d * 4);
 		}
 
 		AssignExpr(ASTNode* lhs, Expr* rhs) : Expr(INT_T){
@@ -524,6 +672,31 @@ class BinaryExpr : public Expr {
 			this->lhs = lhs;
 			this->rhs = rhs;
 		}
+
+		void generate_code(){
+			lhs->generate_code();
+
+			Helper::empilha_s0();
+
+			rhs->generate_code();
+
+			printf("lw $t1, 4($sp)\n");
+
+			Helper::desempilhar();
+
+			printf("sub $s0, $t1, $s0\n");
+				
+			if(op == GREATER){
+				printf("bgtz $s0, A%d\n", label);
+				printf("li $s0, 0\n");
+				printf("b FIM_A%d\n", label);
+				printf("A%d:\n", label);
+				printf("li $s0, 1\n");
+				printf("FIM_A%d:\n", label);
+				label++;
+			}
+			
+		}
 };
 
 class UnaryExpr : public Expr {
@@ -552,7 +725,16 @@ class ConstExpr : public Expr {
 			// std::cout << "const expr com tipo" << dt << "\n";
 		}
 
+		void generate_code(){
+			if(this->exp_tp == INT_T)
+				printf("li $s0, %d\n", this->getIntVal());
+			else if(this->exp_tp == CHAR_T){
+				printf("li $0, %s\n", this->value->c_str());
+			}
+		}
+
 		ConstExpr(DataType dt, std::string* val) : Expr(dt){
+			// std::cout << *val << " criada!\n";
 			this->value = val;
 			// std::cout << dt << " eh o tipo const expr\n"; 
 		}
@@ -590,8 +772,12 @@ class FuncCall : public Expr {
 		void run(DataType &dt) {
 			// printf("chamei uma funcao!\n");
 			// std::cout << *func_id << "\n";
-
 			dt = INT_T;
+
+			if(func_symbol_tab.count(*func_id) == 0){
+				std::string error = "A função " + *func_id + " nao foi previamente declarada.";
+				yyerror(error.c_str(), node_location);
+			}
 
 			FuncDecl *func = func_symbol_tab[*func_id];
 			FuncBody *body = func->get_func_body();
@@ -663,18 +849,63 @@ class Leia : public ASTNode{
 		}
 
 		Leia(Identifier* identifier) : var_id(identifier) {}
+
+		void generate_code(){
+			printf("li $v0, 5\n");
+			printf("syscall\n");
+
+			int d = Helper::get_deslocamento(var_id);
+
+			printf("sw $v0, %d($s1)\n", -4 * d);
+		}
 };
 
 class Escreva : public Expr {
 	public:
+		int type;
+
 		Escreva(){}
 
-		Escreva(ASTNode *expr){
+		Escreva(ASTNode *expr, int tp = 0){
 			this->add(expr);
+			type = tp;
 		}
 
 		void run(DataType &dt) {
 			for (size_t i = 0; i < child.size(); i++) static_cast< Expr* >(child[i])->run(dt);
+		}
+
+		void generate_code(){
+			for(int i = 0 ; i < child.size() ; i++){
+				this->child[i]->generate_code();
+			}
+
+			ConstExpr *exp = static_cast< ConstExpr* > (this->child[0]);
+
+			std::string st = exp->getStringVal();
+			char str[100];
+
+			for(int i = 0 ; i < st.length() ; i++){
+				str[i] = st[i];
+			}
+
+			str[st.length()] = 0;
+
+			// std::cout << "======= " << exp->getStringVal() << " " << (exp->getStringVal()).length() << "\n";
+
+			if(exp->get_type() == CHAR_ARRAY_T){
+				printf(".data\n");
+				printf("\tstr%d: .asciiz \"%s\"\n.text\n", st_num, str);
+				printf("li $v0, 4\n");
+				printf("la $a0, str%d\n", st_num);
+				printf("syscall\n");
+			}else{
+				printf("li $v0, 1\n");
+				printf("addiu $a0, $s0, 0\n");
+				printf("syscall\n");
+			}
+
+			st_num++;
 		}
 };
 

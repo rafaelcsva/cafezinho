@@ -33,40 +33,85 @@ Programa :		DeclFuncVar DeclProg
 					if($1 != NULL)
 						$1->run();
 
-					if($2 != NULL)
+					if($2 != NULL){
+						scope_lvl = 1;
+
 						$2->run();
+
+						var_symbol_tab.clear();
+						func_symbol_tab.clear();
+						
+						escopo[1] = 0;
+						
+						if($1 != NULL){
+							scope_lvl = 0;
+							$1->generate_code();
+						}
+
+						scope_lvl = 1;
+
+						$2->generate_code();
+					}
 				}
 				;
 
 DeclFuncVar :	TIPO ID DeclVar ';' DeclFuncVar {
-					$$ = new DeclVar();
-					static_cast< DeclVar* >($$)->setDataType($2);
+					$$ = new ListaDeclVar();
 
-					$3->add_back(new DeclId($2));
-					$$->add($3);
+					static_cast< ListaDeclVar* >($$)->set_type($1);
 
-					if($5 != NULL){
-						$$->add($5);
+					DeclId* a = new DeclId($2);
+					a->set_location(yylineno);
+					
+					if($3 != NULL){
+						a->add($3);
+					}				
+
+					std::vector< ASTNode* > childs;
+
+					a->get_ids(childs);
+
+					for(int i = 0 ; i < childs.size() ; i++){
+						std::cout << *static_cast< DeclId* >(childs[i])->getVarName() << '\n';
+
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId* >(childs[i]));
 					}
+
+					if($5 != NULL)
+						$$->add($5);
 
 					$$->set_location(yylineno);
 				}
 				| TIPO ID '['INTCONST']' DeclVar ';' DeclFuncVar {
-					$$ = new DeclVar();
-					static_cast< DeclVar* >($$)->setDataType($1);
-					$6->add_back(new DeclId($2, $4));
-					$$->add($6);
+					$$ = new ListaDeclVar();
 
-					if($8 != NULL){
-						$$->add($8);
+					static_cast< ListaDeclVar* >($$)->set_type($1);
+					
+					DeclId* a = new DeclId($2, $4);
+					a->set_location(yylineno);
+
+					if($6 != NULL){
+						a->add($6);
 					}
+
+					std::vector< ASTNode* > childs;
+					a->get_ids(childs);
+
+					for(int i = 0 ; i < childs.size() ; i++){
+						static_cast< ListaDeclVar* >($$)->add_var(static_cast< DeclId* >(childs[i]));
+					}
+
+					if($8 != NULL)
+						$$->add($8);
 
 					$$->set_location(yylineno);
 				}
 				| TIPO ID DeclFunc DeclFuncVar {
-					$$ = new FuncDecl($1, $2);
+					$$ = new ASTNode();
+					FuncDecl *f = new FuncDecl($1, $2);
+					f->add($3);
 
-					$$->add($3);
+					$$->add(f);
 
 					if($4 != NULL){	
 						$$->add($4);

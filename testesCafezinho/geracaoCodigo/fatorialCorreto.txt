@@ -1,10 +1,14 @@
 /* Este e um programa CORRETO em Cafezinho que calcula o fatorial de um nmero*/
+int x;
+
 int fatorial(int n){
 	se (n==0)
-	entao
+	entao{
 		retorne 1;
-	senao
-		retorne n* fatorial(n-1);
+	}
+	senao{
+		retorne n * fatorial(n - 1);
+	}
 }
 
 programa {

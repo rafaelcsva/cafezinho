@@ -1086,7 +1086,7 @@ case YY_STATE_EOF(CADEIA):
 case 50:
 YY_RULE_SETUP
 #line 76 "tokens.l"
-{ }
+{ buf += *yytext;}
 	YY_BREAK
 case 51:
 YY_RULE_SETUP

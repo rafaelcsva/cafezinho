@@ -73,7 +73,7 @@ std::string buf;
 	"\\\""		{ buf += '\\'; }
 }
 <CADEIA><<EOF>> { yyerror("STRING NAO TERMINA."); }
-<CADEIA>.		{ }
+<CADEIA>.		{ buf += *yytext;}
 
 "/*"			 { BEGIN COMMENT; }
 
