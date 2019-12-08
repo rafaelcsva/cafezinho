@@ -50,6 +50,7 @@ Programa :		DeclFuncVar DeclProg
 
 						scope_lvl = 1;
 
+						printf("MAIN:\n");
 						$2->generate_code();
 					}
 				}

@@ -12,11 +12,14 @@
 void yyerror(const char *);
 void yyerror(const char *, int);
 
+class ASTNode;
 class Identifier;
 class FuncDecl;
 class ConstExpr;
 class DeclId;
 class ListaCmd;
+class FuncBody;
+class FuncParametro;
 
 enum DataType 
 {
@@ -60,6 +63,8 @@ public:
 
 typedef std::map<std::string, std::stack< VarNode > > VarSymTab;
 typedef std::map<std::string, FuncDecl*> FuncSymTab;
+static std::stack< DataType > func_ttp;
+static std::stack< std::string > func_call_stack;
 const int N = 1000;
 static int escopo[N];
 static std::vector< VarNode > globals;
@@ -67,12 +72,13 @@ static VarSymTab var_symbol_tab;
 static FuncSymTab func_symbol_tab;
 static std::stack< std::string > decl;
 static int scope_lvl = 0;
-static bool inside_func = false;
-static DataType func_ttp;
+static int inside_func = false;
 static bool moved_s1 = false;
 static int st_num = 0;
 static int label = 0;
 static int enquanto_num = 0;
+static std::map< std::string, std::vector< std::string > > func_params;
+static int lsize = 0;
 
 class ASTNode {
 	protected:
@@ -112,9 +118,11 @@ class ASTNode {
 		virtual void generate_code(){
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
+				printf("b MAIN\n");
 				moved_s1 = true;
 			}
-			
+			// printf("gerando codigo em um AST qqr\n");
+
 			for (size_t i = 0; i < child.size(); i++){
 				if(child[i] == NULL) continue;
 
@@ -159,18 +167,47 @@ class Identifier : public Expr {
 		}
 
 		void generate_code(){
+			if(var_symbol_tab[*this->get_id()].empty()){//entao ele eh um parametro da funcao..
+				int pos = 0;
 
-			VarNode a = var_symbol_tab[*this->get_id()].top();
+				for(std::string u : func_params[func_call_stack.top()]){
+					if(u == *this->get_id()){
+						break;
+					}
 
-			int d = 0;
+					pos++;
+				}
 
-			for(int i = 0 ; i < a.second ; i++){
-				d += escopo[i];
+				printf("lw $s0, %d($fp)\n", (pos + 1) * 4);
+			}else if(inside_func == 0){
+				VarNode a = var_symbol_tab[*this->get_id()].top();
+
+				int d = 0;
+
+				for(int i = 0 ; i < a.second ; i++){
+					d += escopo[i];
+				}
+
+				d += a.position;
+		
+				printf("lw $s0, %d($s1)\n", -d * 4);//acesso
+			}else{
+				int d = 0;
+
+				VarNode a = var_symbol_tab[*this->get_id()].top();
+
+				if(a.second == 0){
+					printf("lw $s0, %d($s1)\n", -d);
+				}else{
+					for(int i = 1 ; i < a.second ; i++){
+						d += escopo[i];
+					}
+
+					d += a.first;
+
+					printf("lw $s0, %d($fp)\n", -(d + 1) * 4);
+				}
 			}
-
-			d += a.position;
-
-			printf("lw $s0, %d($s1)\n", d);//acesso
 		}
 
 		Identifier(std::string* id, ASTNode* arr_pos = NULL) : Expr(INT_T){
@@ -356,6 +393,7 @@ class ListaDeclVar : public ASTNode {
 
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
+				printf("b MAIN\n");
 				moved_s1 = true;
 			}
 
@@ -365,7 +403,7 @@ class ListaDeclVar : public ASTNode {
 				tot += (a->getVarSize() == -1 ? 1 : a->getVarSize());
 			}
 
-			printf("addiu $sp, $sp, %d\n", -(tot + 1) * 4);//Deslocar a pilha o número de variáveis + 1
+			printf("addiu $sp, $sp, %d\n", -tot * 4);//Deslocar a pilha o número de variáveis + 1
 
 			for(int i = 0 ; i < (this->child).size() ; i++){
 				this->child[i]->generate_code();
@@ -455,6 +493,10 @@ class FuncParametro : public ASTNode{
 				static_cast< FuncParametro* >(this->child[0])->get_params(params);
 			}
 		}
+
+		std::string get_name(){
+			return *this->id_name;
+		}
 };
 
 class FuncBody : public ASTNode {
@@ -493,9 +535,29 @@ class FuncDecl : public ASTNode {
 			return (FuncBody*) this->child[0];
 		}
 
+		void generate_code(){
+			func_symbol_tab[*func_name] = this;
+
+			int mf = label;
+
+			label++;
+
+			printf("FUNC%d:\n", mf);
+
+			func_call_stack.push(*func_name);
+
+			if(this->child[0] != NULL){
+				if(((FuncBody*)this->child[0])->body != NULL)
+					(((FuncBody*) this->child[0])->body)->generate_code();
+			}
+
+			printf("FIMFUNC%d:\n", mf);
+			
+			func_call_stack.pop();
+		}
+
 		void run(){
-			inside_func = true;
-			func_ttp = this->func_type;
+			func_ttp.push(this->func_type);
 			// printf("a funcao tem tipo %d\n", func_ttp);
 
 			if(var_symbol_tab.find(*func_name) != var_symbol_tab.end()){
@@ -515,8 +577,9 @@ class FuncDecl : public ASTNode {
 			decl.push("#");
 
 			if(this->child[0] != NULL){
-				if(((FuncBody*)this->child[0])->params != NULL)
+				if(((FuncBody*)this->child[0])->params != NULL){
 					(((FuncBody*)this->child[0])->params)->run();
+				}
 
 				if(((FuncBody*)this->child[0])->body != NULL)
 					(((FuncBody*) this->child[0])->body)->run();
@@ -532,7 +595,11 @@ class FuncDecl : public ASTNode {
 
 			decl.pop();
 
-			inside_func = false;
+			func_ttp.pop();
+		}
+
+		static void generate_code_to_id(std::string id){
+			
 		}
 };
 
@@ -550,25 +617,32 @@ class Se : public Expr {
 				this->add(elsestmt);
 			}
 		}
+
+		void generate_code(){
+			int lab = label;
+			label++;
+
+			child[0]->generate_code();
+
+			printf("beq $s0, 0, SENAO%d\n", lab);
+			
+			if(child[1] != NULL)
+				child[1]->generate_code();
+			
+			printf("b FIMSE%d\n", lab);
+
+			printf("SENAO%d:\n", lab);
+
+			if(child.size() > 2){
+				child[2]->generate_code();
+			}
+
+			printf("FIMSE%d:\n", lab);
+		}
 };
 
 class Enquanto : public Expr {
 	public:
-		void run(DataType &dt) {
-			// printf("Enquanto tem %lu filhos!\n", child.size());
-
-			for (size_t i = 0; i < child.size(); i++){
-				child[i]->run(dt);
-			}
-		}
-
-		Enquanto(ASTNode* expr, ASTNode* stmt){
-			this->add(expr);
-			if(stmt != NULL){
-				this->add(stmt);
-			}
-		}
-
 		void generate_code(){
 			int meq = enquanto_num;
 			enquanto_num++;
@@ -585,6 +659,21 @@ class Enquanto : public Expr {
 			printf("beq $s0, 1, ENQUANTO%d\n", meq);
 
 			printf("FIMENQUANTO%d:\n",meq);
+		}
+
+		void run(DataType &dt) {
+			// printf("Enquanto tem %lu filhos!\n", child.size());
+
+			for (size_t i = 0; i < child.size(); i++){
+				child[i]->run(dt);
+			}
+		}
+
+		Enquanto(ASTNode* expr, ASTNode* stmt){
+			this->add(expr);
+			if(stmt != NULL){
+				this->add(stmt);
+			}
 		}
 };
 
@@ -674,6 +763,8 @@ class BinaryExpr : public Expr {
 		}
 
 		void generate_code(){
+			lsize = 1;
+
 			lhs->generate_code();
 
 			Helper::empilha_s0();
@@ -684,9 +775,8 @@ class BinaryExpr : public Expr {
 
 			Helper::desempilhar();
 
-			printf("sub $s0, $t1, $s0\n");
-				
 			if(op == GREATER){
+				printf("sub $s0, $t1, $s0\n");
 				printf("bgtz $s0, A%d\n", label);
 				printf("li $s0, 0\n");
 				printf("b FIM_A%d\n", label);
@@ -694,6 +784,46 @@ class BinaryExpr : public Expr {
 				printf("li $s0, 1\n");
 				printf("FIM_A%d:\n", label);
 				label++;
+			}else if(op == LESS){
+				printf("sub $s0, $t1, $s0\n");
+				printf("bltz $s0, A%d\n", label);
+				printf("li $s0, 0\n");
+				printf("b FIM_A%d\n", label);
+				printf("A%d:\n", label);
+				printf("li $s0, 1\n");
+				printf("FIM_A%d:\n", label);
+				label++;
+			}else if(op == LESS_EQUAL){
+				printf("sub $s0, $t1, $s0\n");
+				printf("blez $s0, A%d\n", label);
+				printf("li $s0, 0\n");
+				printf("b FIM_A%d\n", label);
+				printf("A%d:\n", label);
+				printf("li $s0, 1\n");
+				printf("FIM_A%d:\n", label);
+				label++;
+			}else if(op == GREATER_EQUAL){
+				printf("sub $s0, $t1, $s0\n");
+				printf("bgezal $s0, A%d\n", label);
+				printf("li $s0, 0\n");
+				printf("b FIM_A%d\n", label);
+				printf("A%d:\n", label);
+				printf("li $s0, 1\n");
+				printf("FIM_A%d:\n", label);
+				label++;
+			}else if(op == PLUS){
+				printf("add $s0, $t1, $s0\n");
+			}else if(op == MINUS){
+				printf("sub $s0, $t1, $s0\n");
+			}else if(op == TIMES){
+				printf("mult $s0, $t1\n");
+				printf("lw $s0, 0($LO)\n");
+			}else if(op == DIVIDES){
+				printf("div $s0, $t1\n");
+				printf("lw $s0, 0($LO)\n");
+			}else if(op == MOD){
+				printf("div $s0, $t1\n");
+				printf("lw $s0, 0($HI)\n");
 			}
 			
 		}
@@ -826,6 +956,39 @@ class FuncCall : public Expr {
 			}
 		}
 
+		void generate_code(){
+			FuncDecl *func = func_symbol_tab[*func_id];
+			FuncBody *body = func->get_func_body();
+			FuncParametro *params = body->get_params();
+
+			std::vector< ASTNode* > args;
+
+			if(this->child[0] != NULL){
+				args = this->child[0]->get_child();
+			}
+
+			std::vector< FuncParametro* > param_list;
+
+			if(params != NULL){
+				params->get_params(param_list);
+			}
+
+			// printf("|params| = %lu\n", param_list.size());
+
+			if(args.size() != param_list.size()){
+				std::string error = "Numero de parametros para a função " + *func_id + " incorretos";
+				yyerror(error.c_str(), node_location);
+			}
+
+			for(int i = 0 ; i < args.size() ; i++){
+				Expr *r = (Expr*) args[i];
+				int sz = 0;
+
+				r->generate_code();
+
+			}
+		}
+
 		FuncCall(std::string* func_nm, ASTNode* args = NULL) : Expr(INT_T){
 			this->add(args);
 
@@ -923,12 +1086,23 @@ class Return : public Expr {
 
 			// printf("xxxx == = %d %d\n", inside_func, func_ttp);
 
-			if(inside_func && dt != func_ttp){
+			if(!func_ttp.empty() && dt != func_ttp.top()){
 				std::string error = "A funcao possui um retorno com tipo diferente da declaracao";
 				yyerror(error.c_str(), node_location);
 			}
 
 			rtype = dt;
+		}
+
+		void generate_code(){
+			rval->generate_code();
+
+			//voltar pilha...
+			printf("lw $ra, 0($fp)\n");
+			printf("move $sp, $fp\n");
+			printf("addiu $sp, $sp, %lu\n", (func_params[func_call_stack.top()].size() + 1) * 4);
+			printf("lw $fp, 0($sp)\n");
+			printf("jr $ra\n");
 		}
 };
 
