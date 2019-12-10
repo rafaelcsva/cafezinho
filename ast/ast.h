@@ -534,11 +534,6 @@ class FuncBody : public ASTNode {
 		}
 
 		void run() {
-			// std::cout << "rodando FuncBody\n";
-			// for (size_t i = 0; i < child.size(); i++) child[i]->run();
-		}
-
-		void generate_code(){
 			FuncBody *body = this;
 			FuncParametro *params = body->get_params();
 
@@ -559,6 +554,10 @@ class FuncBody : public ASTNode {
 
 				func_params[func_call_stack.top()].push_back({e->get_name(), sz});
 			}
+		}
+
+		void generate_code(){
+			
 		}
 
 		FuncBody(ASTNode *par, ASTNode *bod){
@@ -595,6 +594,8 @@ class FuncDecl : public ASTNode {
 			func_call_stack.push(*func_name);
 
 			if(this->child[0] != NULL){
+				this->child[0]->run();
+
 				if(((FuncBody*)this->child[0])->params != NULL){
 					(((FuncBody*)this->child[0])->params)->generate_code();
 				}
@@ -878,7 +879,6 @@ class BinaryExpr : public Expr {
 				printf("mfhi $s0\n");
 			}else if(op == EQUALS){
 				printf("beq $s0, $t1, A%d\n", label);
-				printf("blez $s0, A%d\n", label);
 				printf("li $s0, 0\n");
 				printf("b FIM_A%d\n", label);
 				printf("A%d:\n", label);
@@ -1165,8 +1165,9 @@ class Return : public Expr {
 			//voltar pilha...
 			printf("lw $ra, 0($fp)\n");
 			printf("move $sp, $fp\n");
-			printf("addiu $sp, $sp, %d\n", (Helper::get_size_params() + 1) * 4);
-			printf("lw $fp, 0($sp)\n");
+			printf("addiu $sp, $sp, %d\n", (Helper::get_size_params() + 1 + 1) * 4);
+			printf("move $fp, $sp\n");//deslocando a pilha da forma certa
+			printf("addiu $sp, $sp, -8\n");
 			printf("jr $ra\n");
 		}
 };

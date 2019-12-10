@@ -13,7 +13,6 @@ li $s0, 0
 lw $t1, 4($sp)
 addiu $sp, $sp, 4
 beq $s0, $t1, A1
-blez $s0, A1
 li $s0, 0
 b FIM_A1
 A1:
@@ -23,8 +22,9 @@ beq $s0, 0, SENAO0
 li $s0, 1
 lw $ra, 0($fp)
 move $sp, $fp
-addiu $sp, $sp, 4
-lw $fp, 0($sp)
+addiu $sp, $sp, 12
+move $fp, $sp
+addiu $sp, $sp, -8
 jr $ra
 b FIMSE0
 SENAO0:
@@ -47,14 +47,15 @@ mult $s0, $t1
 mflo $s0
 lw $ra, 0($fp)
 move $sp, $fp
-addiu $sp, $sp, 4
-lw $fp, 0($sp)
+addiu $sp, $sp, 12
+move $fp, $sp
+addiu $sp, $sp, -8
 jr $ra
 FIMSE0:
 FIMfatorial:
 MAIN:
 addiu $sp, $sp, -4
-li $s0, 2
+li $s0, 3
 sw $s0, -8($s1)
 .data
 	str0: .asciiz "O fatorial de "

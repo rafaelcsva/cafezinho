@@ -13,7 +13,7 @@ int fatorial(int n){
 
 programa {
 	int n;
-	n =2;	
+	n =3;	
 	escreva "O fatorial de ";
 	escreva n;
 	escreva " e: ";
