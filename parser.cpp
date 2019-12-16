@@ -1577,7 +1577,7 @@ yyreduce:
 #line 178 "parser.y" /* yacc.c:1646  */
     {
 							(yyval.node) = new FuncParametro();
-							static_cast< FuncParametro* >((yyval.node))->setDataType((yyvsp[-3].tval));
+							static_cast< FuncParametro* >((yyval.node))->setDataType((yyvsp[-3].tval), true);
 							static_cast< FuncParametro* >((yyval.node))->setName((yyvsp[-2].tval));
 
 							(yyval.node)->set_location(yylineno);

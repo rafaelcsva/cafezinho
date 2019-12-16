@@ -155,6 +155,10 @@ class Identifier : public Expr {
 	protected:
 		std::string* id;
 	public:
+		ASTNode* get_child(){
+			return child[0];
+		}
+
 		void run(DataType &a) {
 			// std::cout << *id << " procurando id " << var_symbol_tab[*id].size() << "\n";
 
@@ -272,6 +276,21 @@ class Helper{
 		}
 
 		static int get_deslocamento(Identifier *id){
+			if(var_symbol_tab[*id->get_id()].empty()){//entao ele eh um parametro da funcao..
+				int pos = 0;
+
+				for(std::pair< std::string, int > u: func_params[func_call_stack.top()]){
+					if(u.first == *id->get_id()){
+						break;
+					}
+
+					pos += u.second;
+				}
+
+				return pos;
+			}
+
+			// std::cou
 			VarNode a = var_symbol_tab[*id->get_id()].top();
 
 			int d = 0;
@@ -477,6 +496,30 @@ class Bloco : public ASTNode{
 
 			decl.pop();
 		}
+
+		virtual void generate_code(){
+			if(!moved_s1){
+				printf("move $s1, $sp\n");
+				printf("b MAIN\n");
+				moved_s1 = true;
+			}
+			// printf("gerando codigo em um AST qqr\n");
+
+			decl.push("#");
+
+			for (size_t i = 0; i < child.size(); i++){
+				if(child[i] == NULL) continue;
+
+				child[i]->generate_code();
+			} 
+
+			while(decl.top() != "#"){
+				var_symbol_tab[decl.top()].pop();
+				decl.pop();
+			}
+
+			decl.pop();
+		}
 };
 
 class FuncParametro : public ASTNode{
@@ -593,6 +636,9 @@ class FuncDecl : public ASTNode {
 
 			func_call_stack.push(*func_name);
 
+			scope_lvl++;
+			decl.push("#");
+
 			if(this->child[0] != NULL){
 				this->child[0]->run();
 
@@ -603,6 +649,16 @@ class FuncDecl : public ASTNode {
 				if(((FuncBody*)this->child[0])->body != NULL)
 					(((FuncBody*) this->child[0])->body)->generate_code();
 			}
+
+			scope_lvl--;
+
+			while(decl.top() != "#"){
+				// std::cout << decl.top() << " sendo tirado!\n";
+				var_symbol_tab[decl.top()].pop();
+				decl.pop();
+			}
+
+			decl.pop();
 
 			printf("FIM%s:\n", func_name->c_str());
 			
@@ -758,7 +814,25 @@ class AssignExpr : public Expr {
 
 			int d = Helper::get_deslocamento(id);
 
-			printf("sw $s0, %d($s1)\n", -d * 4);
+			if(id->get_child() == NULL){
+				printf("sw $s0, %d($s1)\n", -d * 4);
+			}else{
+				Helper::empilha_s0();
+
+				printf("lw $a0, %d($s1)\n", -d * 4);//a0 eh o endereco do array
+
+				id->get_child()->generate_code();
+
+				printf("sll $s0, $s0, 2\n");
+
+				printf("addu $a1, $s0, $a0\n");//a1 eh o endereco ja com a posicao correta
+
+				printf("lw $t1, 4($sp)\n");
+
+				Helper::desempilhar();
+
+				printf("sw $t1, 0($a1)\n");
+			}
 		}
 
 		AssignExpr(ASTNode* lhs, Expr* rhs) : Expr(INT_T){
@@ -803,7 +877,7 @@ class BinaryExpr : public Expr {
 
 			static_cast< Expr* >(rhs)->run(o);
 
-			if(dt != o){
+			if(Helper::incompativel(dt, o)){
 				std::string error = "Expressao utiliza tipos incompativeis.";
 				yyerror(error.c_str(), node_location);
 			}

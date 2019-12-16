@@ -1,5 +1,6 @@
 int vet[10];
 int somaVet(int vet[], int n){
+	int i, soma;
 	i=0;
 	soma=0;
 	enquanto (i<10) execute {

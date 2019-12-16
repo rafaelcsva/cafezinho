@@ -177,7 +177,7 @@ ListaParametrosCont :	TIPO ID {
 						}
 						| TIPO ID'['']' {
 							$$ = new FuncParametro();
-							static_cast< FuncParametro* >($$)->setDataType($1);
+							static_cast< FuncParametro* >($$)->setDataType($1, true);
 							static_cast< FuncParametro* >($$)->setName($2);
 
 							$$->set_location(yylineno);
