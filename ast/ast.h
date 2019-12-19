@@ -809,7 +809,7 @@ class AssignExpr : public Expr {
 			rhs->generate_code();
 			
 			Identifier *id = static_cast< Identifier* >(lhs);
-
+			
 			// std::cout << *id->get_id() << " " << var_symbol_tab[*id->get_id()].size();
 
 			int d = Helper::get_deslocamento(id);
