@@ -4,9 +4,7 @@ int LeVetor(int vet[]){
      i=0;
      enquanto (i<5) execute{
           escreva "Digite o valor do elemento";
-	  escreva i;
-	  escreva " do vetor" ;
-          leia vet[i];
+	  escreva i; 
 	  i=i+1;
      }
 }

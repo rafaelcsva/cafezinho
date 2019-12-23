@@ -81,6 +81,7 @@ static std::map< std::string, std::vector< std::pair< std::string, int > > > fun
 static int lsize = 0;
 static int totglobals = 0;
 static std::map< std::string, bool > taked;
+static bool gotomain = false;
 
 class ASTNode {
 	protected:
@@ -120,7 +121,8 @@ class ASTNode {
 		virtual void generate_code(){
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
-				printf("b MAIN\n");
+				if(gotomain)
+					printf("b MAIN\n");
 				moved_s1 = true;
 			}
 			// printf("gerando codigo em um AST qqr\n");
@@ -432,7 +434,8 @@ class ListaDeclVar : public ASTNode {
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
 				Helper::empilha_s0(totglobals);
-				printf("b MAIN\n");
+				if(gotomain)
+					printf("b MAIN\n");
 				moved_s1 = true;
 			}
 
@@ -500,7 +503,8 @@ class Bloco : public ASTNode{
 		virtual void generate_code(){
 			if(!moved_s1){
 				printf("move $s1, $sp\n");
-				printf("b MAIN\n");
+				if(gotomain)
+					printf("b MAIN\n");
 				moved_s1 = true;
 			}
 			// printf("gerando codigo em um AST qqr\n");
@@ -1182,26 +1186,26 @@ class Escreva : public Expr {
 				this->child[i]->generate_code();
 			}
 
-			ConstExpr *exp = static_cast< ConstExpr* > (this->child[0]);
-
-			std::string st = exp->getStringVal();
 			char str[100];
 
-			for(int i = 0 ; i < st.length() ; i++){
-				str[i] = st[i];
-			}
+			if(this->type == 0){
+				ConstExpr *exp = static_cast< ConstExpr* > (this->child[0]);
 
-			str[st.length()] = 0;
+				std::string st = exp->getStringVal();
+		
+				for(int i = 0 ; i < st.length() ; i++){
+					str[i] = st[i];
+				}
 
-			// std::cout << "======= " << exp->getStringVal() << " " << (exp->getStringVal()).length() << "\n";
-
-			if(exp->get_type() == CHAR_ARRAY_T){
+				str[st.length()] = 0;
 				printf(".data\n");
 				printf("\tstr%d: .asciiz \"%s\"\n.text\n", st_num, str);
 				printf("li $v0, 4\n");
 				printf("la $a0, str%d\n", st_num);
 				printf("syscall\n");
 			}else{
+			// std::cout << "======= " << exp->getStringVal() << " " << (exp->getStringVal()).length() << "\n";
+
 				printf("li $v0, 1\n");
 				printf("addiu $a0, $s0, 0\n");
 				printf("syscall\n");

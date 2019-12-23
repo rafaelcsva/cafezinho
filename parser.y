@@ -45,6 +45,7 @@ Programa :		DeclFuncVar DeclProg
 						
 						if($1 != NULL){
 							scope_lvl = 0;
+							gotomain = true;
 							$1->generate_code();
 						}
 
@@ -308,7 +309,7 @@ Comando :		';' {$$ = NULL; }
 					$$->set_location(yylineno);
 				}
 				| ESCREVA Expr';' {
-					$$ = new Escreva($2);
+					$$ = new Escreva($2, 1);
 					
 					$$->set_location(yylineno);
 				}

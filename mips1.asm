@@ -24,25 +24,17 @@ A0:
 li $s0, 1
 FIM_A0:
 beq $s0, 0, FIMENQUANTO0
-.data
-	str0: .asciiz "Digite o valor do elemento"
-.text
-li $v0, 4
-la $a0, str0
-syscall
 lw $s0, -120($s1)
 li $v0, 1
 addiu $a0, $s0, 0
 syscall
 .data
-	str2: .asciiz " do vetor"
+	str1: .asciiz "
+"
 .text
 li $v0, 4
-la $a0, str2
+la $a0, str1
 syscall
-li $v0, 5
-syscall
-sw $v0, 0($s1)
 lw $s0, -120($s1)
 sw $s0, 0($sp)
 addiu $sp, $sp, -4
@@ -152,31 +144,31 @@ li $s0, 1
 FIM_A4:
 beq $s0, 0, FIMENQUANTO2
 .data
-	str3: .asciiz "O valor do elemento "
+	str2: .asciiz "O valor do elemento "
 .text
 li $v0, 4
-la $a0, str3
+la $a0, str2
 syscall
 lw $s0, -128($s1)
 li $v0, 1
 addiu $a0, $s0, 0
 syscall
 .data
-	str5: .asciiz " do vetor:"
+	str4: .asciiz " do vetor:"
 .text
 li $v0, 4
-la $a0, str5
+la $a0, str4
 syscall
 lw $s0, 4($fp)
 li $v0, 1
 addiu $a0, $s0, 0
 syscall
 .data
-	str7: .asciiz "
+	str6: .asciiz "
 "
 .text
 li $v0, 4
-la $a0, str7
+la $a0, str6
 syscall
 lw $s0, -128($s1)
 sw $s0, 0($sp)
@@ -204,34 +196,34 @@ FIMENQUANTO2:
 FIMimprimeVetor:
 MAIN:
 .data
-	str8: .asciiz "Leitura do primeiro vetor"
+	str7: .asciiz "Leitura do primeiro vetor"
 .text
 li $v0, 4
-la $a0, str8
+la $a0, str7
 syscall
 .data
-	str9: .asciiz "
+	str8: .asciiz "
 "
 .text
 li $v0, 4
-la $a0, str9
+la $a0, str8
 syscall
 lw $s0, -60($s1)
 sw $s0, 0($sp)
 addiu $sp, $sp, -4
 jal LeVetor
 .data
-	str10: .asciiz "Leitura do segundo vetor"
+	str9: .asciiz "Leitura do segundo vetor"
 .text
 li $v0, 4
-la $a0, str10
+la $a0, str9
 syscall
 .data
-	str11: .asciiz "
+	str10: .asciiz "
 "
 .text
 li $v0, 4
-la $a0, str11
+la $a0, str10
 syscall
 lw $s0, -80($s1)
 sw $s0, 0($sp)
@@ -248,17 +240,17 @@ sw $s0, 0($sp)
 addiu $sp, $sp, -4
 jal somaVetor
 .data
-	str12: .asciiz "O vetor soma:"
+	str11: .asciiz "O vetor soma:"
 .text
 li $v0, 4
-la $a0, str12
+la $a0, str11
 syscall
 .data
-	str13: .asciiz "
+	str12: .asciiz "
 "
 .text
 li $v0, 4
-la $a0, str13
+la $a0, str12
 syscall
 lw $s0, -100($s1)
 sw $s0, 0($sp)
